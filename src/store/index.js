@@ -7,6 +7,7 @@ import {
 const store = createStore({
     state: {
         movieData: [],
+        loginState: false,
     },
     actions,
     mutations,
