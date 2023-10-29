@@ -1,20 +1,30 @@
 /* eslint-disable no-unused-vars */
 import axios from 'axios';
-const url =import.meta.env.VITE_API_URL;
+const url =
+    import.meta.env.VITE_API_URL;
 
 
-const localURL = url
+const localURL = 'http://127.0.0.1:8000/'
 
 export default {
-    async authenticate(context) {
-        // Get the CSRF token from the cookie
-
-        // Set the CSRF token in the default headers for Axios
-
-        // You can also check if the token is set correctly
-
-        // Now you can make other Axios requests
-
+    setAuthToken(context, payload) {
+        context.commit('setAuthToken', payload);
+    },
+    async authenticate(context, payload) {
+        await axios({
+            url: localURL + "getAuth",
+            method: "post",
+            withCredentials: true,
+            data: payload
+        }).then((response) => {
+            if (response.data.status === "ok") {
+                context.commit('setLoginState', true);
+            } else {
+                context.commit('setLoginState', false);
+            }
+        }).catch((error) => {
+            console.error('Error in login request:', error);
+        });
     },
 
     async getMovieData(context) {
@@ -26,30 +36,31 @@ export default {
     },
 
     async login(context, payload) {
-        console.log("@action ");
-
-        try {
-            // First, make a request to get the CSRF token
-            const csrfResponse = await axios.get(localURL + 'auth');
-
-            console.log(csrfResponse.data.csrfToken);
-            const loginResponse = await axios.post(
-                localURL + 'admin/login',
-                payload, {
-                    withCredentials: true,
-                    headers: {
-                        'X-CSRFToken': csrfResponse.data.csrfToken,
-                    },
-                }
-            );
-
-            console.log(loginResponse.data);
-            // handle successful response here
-
-        } catch (error) {
-            console.log(error);
-            // handle error here
+        const setCookies = (name, value, expirationDays = 1) => {
+            const date = new Date();
+            date.setTime(date.getTime() + (expirationDays * 24 * 60 * 60 * 1000));
+            const cookieName = name + "=";
+            let expires = "expires=" + date.toUTCString();
+            document.cookie = cookieName + value + ";" + expires + ";path=/";
         }
-    }
+        await axios({
+            url: localURL + "mod/log",
+            method: "POST",
+            data: payload,
+            withCredentials: true,
+            headers: {
+                'X-CSRFToken': context.state.csrfToken,
+                'Content-Type': 'application/json', // Add this line
+            }
+        }).then((response) => {
+            context.commit('setAuthToken', response.data.authToken);
+            //set cookie here
+            setCookies("authToken", response.data.authToken, 1);
+        }).catch((error) => {
+            console.error('Error in login request:', error);
+        });
+    },
+
+
 
 }

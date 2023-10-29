@@ -8,6 +8,9 @@ const store = createStore({
     state: {
         movieData: [],
         loginState: false,
+        csrfToken: null,
+        authToken: null,
+        isLogged: false,
     },
     actions,
     mutations,

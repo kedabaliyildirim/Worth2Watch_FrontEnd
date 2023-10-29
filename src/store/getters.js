@@ -4,5 +4,11 @@ export default {
     },
     getLoginState(state) {
         return state.loginState;
+    },
+    getCsrftoken(state) {
+        return state.csrfToken;
+    },
+    getAuthToken(state) {
+        return state.authToken;
     }
 }
