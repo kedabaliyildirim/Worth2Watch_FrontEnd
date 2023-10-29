@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     vue(),
   ],
-  base: '/static/',
+  base: '/worth2-watch-front-end.vercel.app/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
