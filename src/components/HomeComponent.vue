@@ -149,3 +149,74 @@ export default {
   }
 }
 </script>
+
+<style>
+
+.mainBox {
+  margin-top: 5%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  width: 90%;
+  background-color: #e6e7eb; /* Light gray background */
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.individualBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  max-height: 450px; /* Adjust max height as needed */
+  max-width: 300px; /* Adjust max width as needed */
+  color: black;
+  background-color: white;
+  box-shadow: 22px 10px 10px rgba(0, 0, 0, 0.1);
+}
+
+.poster {
+  max-width: 100%;
+  max-height: 70%; /* Adjust max height of the poster */
+  object-fit: cover; /* Ensure the image covers the entire container */
+}
+.movieGenre{
+  font-weight: bold;
+}
+.details {
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.movieName {
+  font-weight: bold;
+  color: blue;
+}
+
+.releaseDate {
+  align-self: flex-end;
+  font-weight: bold;
+  /* font-size: 1.8em; Adjust font size for release date */
+}
+
+.movieGenre {
+  font-style: italic;
+}
+
+.providers {
+  display: flex;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  object-fit: contain;
+}
+
+.providerLogo {
+  max-width: 20px; /* Adjust max width of provider logo */
+  margin-left: 10px;
+}
+</style>

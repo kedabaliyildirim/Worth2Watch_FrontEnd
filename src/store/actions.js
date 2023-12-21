@@ -9,7 +9,7 @@ const googleApiKey =
     import.meta.env.VITE_GOOGLE_API_KEY
 // jshint ignore:end
 
-const localURL = 'import.meta.env.VITE_API_URL'
+const localURL = "http://127.0.0.1:8000/"
 
 export default {
     setAuthToken(context, payload) {

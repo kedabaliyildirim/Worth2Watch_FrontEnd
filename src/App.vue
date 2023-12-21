@@ -100,6 +100,39 @@ export default {
 </script>
 
 <style>
+.divBody {
+  display: flex;
+  flex-direction: column;
+  place-items: center;
+  align-content: center;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  padding: 1rem; /* Add padding to the wrapper for better spacing */
+}
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  padding: 1rem; /* Add padding to the wrapper for better spacing */
+  background-color: blue;
+}
+
+.RouteLink {
+  margin: 15%;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+nav a.router-link-exact-active {
+  color: var(--color-text);
+}
 /* Add other styles as needed */
 /* Rest of your existing styles... */
 </style>
