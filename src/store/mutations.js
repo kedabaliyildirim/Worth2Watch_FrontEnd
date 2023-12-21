@@ -2,6 +2,12 @@ export default {
     setMovieData(state, movieData) {
         state.movieData = movieData;
     },
+    setTotalPageCount(state, totalPageCount) {
+        state.totalPageCount = totalPageCount;
+    },
+    clearMovieData(state) {
+        state.movieData = [];
+    },
     setCSRFToken(state, csrfToken) {
         state.csrfToken = csrfToken;
     },
@@ -10,5 +16,23 @@ export default {
     },
     setLoginState(state, loginState) {
         state.loginState = loginState;
+    },
+    setCurrentMovie(state, movie) {
+        state.currentMovie = movie;
+    },
+    emptySearchResults(state) {
+        state.searchResults = [];
+    },
+    setSearchResults(state, searchResults) {
+        state.searchResults = searchResults;
+    },
+    setTrailers(state, trailers) {
+        state.trailers = trailers;
+    },
+    setAdminList(state, adminList) {
+        state.admins = adminList;
+    },
+    setTopTenMovies(state, topTenMovies) {
+        state.topTenMovies = topTenMovies;
     }
-}
+};

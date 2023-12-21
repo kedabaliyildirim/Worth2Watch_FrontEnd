@@ -43,8 +43,8 @@ export default {
     } else {
       // 3. Check for authentication token in cookies
       let authCookie = null
-      const value = ; ${document.cookie}
-      const parts = value.split(; ${'authToken'}=)
+      const value = `; ${document.cookie}`
+      const parts = value.split(`; ${'authToken'}=`)
       if (parts.length === 2) {
         authCookie = parts.pop().split(';').shift()
       } else {

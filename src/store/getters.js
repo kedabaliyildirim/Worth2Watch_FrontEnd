@@ -10,5 +10,23 @@ export default {
     },
     getAuthToken(state) {
         return state.authToken;
+    },
+    getCurrentMovie(state) {
+        return state.currentMovie;
+    },
+    getSearchResults(state) {
+        return state.searchResults;
+    },
+    getTotalPageCount(state) {
+        return state.totalPageCount;
+    },
+    getTrailers(state) {
+        return state.trailers;
+    },
+    getAdminList(state) {
+        return state.adminList;
+    },
+    getTopTenMovies(state) {
+        return state.topTenMovies;
     }
-}
+};

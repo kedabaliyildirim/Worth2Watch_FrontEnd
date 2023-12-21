@@ -1,0 +1,13 @@
+{
+    "esversion": 11,
+    "unused": true,
+    "predef": [
+        "import",
+        "export",
+        "module",
+        "process",
+        "__dirname",
+        "__filename",
+        "require"
+    ]
+}

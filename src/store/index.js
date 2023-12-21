@@ -1,3 +1,4 @@
+/* jshint esversion: 6 */
 import actions from './actions';
 import mutations from './mutations';
 import getters from './getters';
@@ -11,6 +12,12 @@ const store = createStore({
         csrfToken: null,
         authToken: null,
         isLogged: false,
+        currentMovie: {},
+        searchResults: [],
+        totalPageCount: 0,
+        trailers: [],
+        adminList: [],
+        topTenMovies: []
     },
     actions,
     mutations,
