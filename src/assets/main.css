@@ -1,7 +1,19 @@
 @import './base.css';
 
+#html {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-weight: normal;
+}
+
 #app {
-  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
   margin: 0;
   font-weight: normal;
 }
@@ -33,5 +45,553 @@ a,
 body {
   display: flex;
   align-items: flex-start;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
   justify-content: center;
+}
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-top: 3%;
+  width: 100%;
+  align-items: center;
+}
+.routerview {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  align-content: center;
+  align-items: center;
+}
+.mainLinks {
+  margin: 5%;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+nav a.router-link-exact-active {
+  color: var(--color-text);
+}
+
+/*  */
+/*  */
+/*  */
+/*  */
+
+/* search related styles */
+/*  */
+/*  */
+/*  */
+/*  */
+.searchDiv {
+  width: 30%;
+}
+.searchBox {
+  margin-top: 5%;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+.searchInput {
+  width: 100%;
+  height: 30px;
+  border-radius: 5px;
+  border: 1px solid #363e3c;
+  padding-left: 5px;
+  font-size: 1.2em;
+}
+.searchResults {
+  display: flex;
+  position: absolute;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background-color: #363e3c;
+  color: white;
+  width: 30%;
+  z-index: 9999;
+  box-shadow: #1a1a1a 10px 10px 10px;
+}
+.searchLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.searchItem:hover {
+  opacity: 0.5;
+}
+.searchItem {
+  display: flex;
+  margin-top: 0.5%;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mainSearchContent {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin-top: 0.1%;
+  width: 85%;
+}
+.searchTitle {
+  margin-left: 1%;
+}
+
+.searchPoster {
+  max-height: 20%;
+  max-width: 20%;
+  aspect-ratio: 1/1.2;
+}
+
+.searchDetails {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  margin-left: 1%;
+  margin-right: 0.1%;
+  width: 20%;
+  font-size: smaller;
+}
+/*  */
+/*  */
+/*  */
+/*  */
+/* main content styles */
+.sortOptions{
+  color: black;
+  position: absolute;
+  right: 7%;
+}
+.mainBox {
+  margin-top: 5%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  width: 90%;
+  background-color: #e6e7eb; /* Light gray background */
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  margin-top: 4%;
+}
+
+.individualBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  height: 550px; /* Adjust max height as needed */
+  width: 300px; /* Adjust max width as needed */
+  color: black;
+  background-color: white;
+  box-shadow: 22px 10px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.poster {
+  height: 65%;
+  width: 100%; /* Adjust the height as per your design preferences */
+}
+
+.movieGenre {
+  font-weight: bold;
+}
+.details {
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.movieName {
+  font-weight: bold;
+  color: blue;
+}
+
+.releaseDate {
+  align-self: flex-end;
+  font-weight: bold;
+  /* font-size: 1.8em; Adjust font size for release date */
+}
+
+.movieGenre {
+  font-style: italic;
+}
+
+.providers {
+  display: flex;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  object-fit: contain;
+}
+
+.providerLogo {
+  max-width: 20px; /* Adjust max width of provider logo */
+  margin-left: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.pagination button {
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  font-weight: bold;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*  */
+/*  */
+/*  */
+/*  */
+/* MOVIE PAGE STYLES  */
+.MoviePageMain {
+  display: flex;
+  margin-top: 5%;
+  width: 100%;
+}
+
+.MoviePagePoster {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.movieTitle {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #ccf;
+}
+
+.movieScoreList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  color: #ccf;
+}
+
+.movieScoreList li {
+  margin-bottom: 5px;
+}
+
+.moviePoster {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-top: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.MoviePageDetails {
+  margin-left: 5%;
+  margin-right: 5%;
+  width: 65%;
+}
+
+.sectionHeader {
+  margin-bottom: 15px;
+}
+
+.trailerHeader,
+.detailsHeader {
+  font-size: 1.5rem;
+  color: #ccf;
+  margin-bottom: 15px;
+}
+
+.movieTrailer {
+  width: 80%;
+  height: 345px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.detailsContainer {
+  margin-bottom: 15px;
+}
+
+.movieDetailLabel {
+  color: #555;
+}
+.movieDescription {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.commentSection{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.commentBody{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6%;
+  background-color: #32302c;
+  margin: 4%;
+  border-radius: 10px 10px 0 0;
+  border: #0056b3 solid 1px;
+  width: 100%;
+}
+
+/*  */
+/*  */
+/*  */
+/*  */
+/* Admin styles */
+.adminMainBody {
+  background-color: #1a1a1a; /* Dark background color */
+  display: flex;
+  height: 100vh; /* Full height of the viewport */
+  margin: 20px; /* Add margin for spacing */
+}
+
+.adminSideBar {
+  width: 20%;
+  position: absolute;
+  left: 4%;
+  top: 30%;
+  height: 50%;
+  padding: 20px;
+  background: #333; /* Darker sidebar background color */
+  color: #fff; /* Adjust text color to white */
+}
+
+.adminSideBar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.adminSideBar li {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.adminSideBar li:hover {
+  background-color: #555; /* Slightly lighter hover background color */
+}
+
+.adminContent {
+  flex: 1;
+  padding: 20px;
+  position: absolute;
+  top: 22%;
+  left: 25%;
+  width: 50%;
+  height: 50%;
+  margin-left: 20px; /* Add margin for spacing */
+}
+
+.adminContentHeader {
+  margin-bottom: 20px;
+  color: #fff; /* Adjust text color to white */
+}
+
+.adminContentBody {
+  background-color: #292929; /* Adjust content background color */
+  border-radius: 8px; /* Add some border radius for a softer look */
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); /* Adjust box shadow color */
+}
+
+.adminContentBodyHeader {
+  margin-bottom: 10px;
+}
+
+/* Admin Operations */
+.logoutButton {
+  background-color: #007bff; /* Button background color */
+  color: #fff; /* Text color */
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  margin-left: 70%;
+  justify-self: center;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.logoutButton:hover {
+  background-color: #0056b3; /* Slightly darker hover background color */
+}
+
+.adminRegisterForm,
+.passRegisterForm,
+.dangerZone form {
+  margin-bottom: 20px;
+}
+
+.adminRegisterForm label,
+.passRegisterForm label,
+.dangerZone form label {
+  display: block;
+  margin-bottom: 5px;
+  color: #fff;
+}
+
+.adminRegisterForm input,
+.passRegisterForm input,
+.dangerZone form select {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+.dangerZone {
+  border: red solid 1px;
+  padding: 2%;
+  background-color: #ff00000f;
+}
+.adminRegisterForm button,
+.passRegisterForm button,
+.dangerZone form button {
+  background-color: #28a745; /* Button background color */
+  color: #fff; /* Text color */
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.adminRegisterForm button:hover,
+.passRegisterForm button:hover,
+.dangerZone form button:hover {
+  background-color: #218838; /* Slightly darker hover background color */
+}
+
+/* ContentOperations */
+
+.pullCommentsForm,
+.pullMoviesForm,
+.dangerZone form {
+  margin-bottom: 20px;
+}
+
+.pullCommentsForm h3,
+.pullMoviesForm h3,
+.dangerZone h3 {
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.pullCommentsForm label,
+.pullMoviesForm label,
+.dangerZone form label {
+  display: block;
+  margin-bottom: 5px;
+  color: #fff;
+}
+
+.pullCommentsForm div,
+.pullMoviesForm div {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.pullCommentsForm label,
+.pullMoviesForm label,
+.dangerZone form label {
+  margin-right: 20px;
+}
+
+.pullCommentsForm button,
+.pullMoviesForm button,
+.dangerZone form button {
+  background-color: #007bff; /* Button background color */
+  color: #fff; /* Text color */
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.pullCommentsForm button:hover,
+.pullMoviesForm button:hover,
+.dangerZone form button:hover {
+  background-color: #0056b3; /* Slightly darker hover background color */
+}
+
+/* TEST Operations*/
+.testingOperations {
+  margin-top: 20px;
+}
+
+.testingOperations h3 {
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.testOperation {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.testOperation button {
+  background-color: #28a745; /* Button background color */
+  color: #fff; /* Text color */
+  border: none;
+  padding: 8px 16px;
+  margin-right: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.testOperation button:disabled {
+  background-color: #6c757d; /* Disabled button background color */
+  cursor: not-allowed;
+}
+
+.statusIcon {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 5px;
+}
+
+.statusIcon.ongoing {
+  background-color: #ffc107; /* Ongoing status color */
+}
+
+.statusIcon.passed {
+  background-color: #28a745; /* Passed status color */
+}
+
+.statusIcon.failed {
+  background-color: #dc3545; /* Failed status color */
 }
