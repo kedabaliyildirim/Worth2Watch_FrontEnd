@@ -2,7 +2,7 @@
 import axios from 'axios';
 import './getters.js';
 // jshint ignore:start
-let url;
+
 const googleUrl =
     import.meta.env.VITE_GOOGLE_SEARCH_URI
 const googleApiKey =
