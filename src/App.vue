@@ -1,24 +1,40 @@
 <template>
-  <div class="divBody">
+  <div id="app">
     <header>
       <div class="wrapper">
-        <nav>
-          <RouterLink class="RouteLink" to="/">Home</RouterLink>
-          <RouterLink class="RouteLink" to="/admin">Admin</RouterLink>
-        </nav>
+        <div class="links">
+          <nav>
+            <RouterLink class="mainLinks" to="/">Home</RouterLink>
+            <RouterLink class="mainLinks" to="/admin">Admin</RouterLink>
+          </nav>
+        </div>
+        <searchComponent />
       </div>
-      <RouterView class="routerview" />
+      <div class="routerview">
+        <RouterView />
+      </div>
     </header>
   </div>
 </template>
+
 <script>
 // eslint-disable-next-line no-unused-vars
 import { RouterLink, RouterView } from 'vue-router'
-// eslint-disable-next-line no-unused-vars
+import searchComponent from '@/components/SearchComponent.vue'
+
 export default {
+  components: {
+    searchComponent
+  },
+  data() {
+    return {
+      searchTerm: ''
+    }
+  },
   created() {
     // 1. Dispatch action to get movie data
-    this.$store.dispatch('getMovieData')
+    
+
     // 2. Check for authentication token in the Vuex store
     const authToken = this.$store.getters.getAuthToken
     if (authToken) {
@@ -27,8 +43,8 @@ export default {
     } else {
       // 3. Check for authentication token in cookies
       let authCookie = null
-      const value = `; ${document.cookie}`
-      const parts = value.split(`; ${'authToken'}=`)
+      const value = ; ${document.cookie}
+      const parts = value.split(; ${'authToken'}=)
       if (parts.length === 2) {
         authCookie = parts.pop().split(';').shift()
       } else {
@@ -43,45 +59,47 @@ export default {
         console.log('no auth token found')
       }
     }
+  },
+  methods: {
+    searchInit() {
+      this.$store.dispatch('searchMovie', this.searchTerm)
+    }
+  },
+  watch: {
+    searchTerm() {
+      if (this.searchTerm.length >= 2) {
+        setTimeout(() => {
+          this.searchInit()
+        }, 5000)
+      }
+    }
+  },
+  computed: {
+    searchResults() {
+      const movieObject = this.$store.getters.getSearchResults
+      let provider = ''
+      return movieObject.map((movie) => {
+        if (JSON.parse(movie).movieProvider && JSON.parse(movie).movieProvider.US) {
+          provider = JSON.parse(movie).movieProvider.US
+        } else {
+          provider = 'No providers available'
+        }
+        console.log(JSON.parse(movie))
+        return {
+          movieName: JSON.parse(movie).movieName,
+          movieReleaseDate: JSON.parse(movie).movieReleaseDate,
+          movieGenre: JSON.parse(movie).movieGenre,
+          imageURL: JSON.parse(movie).imageURL,
+          movieProviders: provider,
+          movie_id: JSON.parse(movie)._id.$oid
+        }
+      })
+    }
   }
 }
 </script>
 
 <style>
-.divBody {
-  display: flex;
-  flex-direction: column;
-  place-items: center;
-  align-content: center;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  padding: 1rem; /* Add padding to the wrapper for better spacing */
-}
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  padding: 1rem; /* Add padding to the wrapper for better spacing */
-  background-color: blue;
-}
-
-.RouteLink {
-  margin: 15%;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-}
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
 /* Add other styles as needed */
-
 /* Rest of your existing styles... */
 </style>
