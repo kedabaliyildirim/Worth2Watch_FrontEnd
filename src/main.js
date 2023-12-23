@@ -12,5 +12,4 @@ const app = createApp(App);
 
 app.use(router);
 app.use(store);
-createStore(); // Call the createStore function to dispatch the actions
 app.mount('#app');
