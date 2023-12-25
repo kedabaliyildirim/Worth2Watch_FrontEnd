@@ -34,11 +34,11 @@ export default {
   created() {
     // 1. Dispatch action to get movie data
     
-//    this.$store.dispatch('getMovieData', {
-  //      page: 1,
-    //    page_size: 20
-   // });
-   // this.$store.dispatch('getTopTen');
+   this.$store.dispatch('getMovieData', {
+       page: 1,
+       page_size: 20
+   });
+   this.$store.dispatch('getTopTen');
 
     // 2. Check for authentication token in the Vuex store
     const authToken = this.$store.getters.getAuthToken
