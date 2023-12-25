@@ -7,17 +7,7 @@ const googleUrl =
     import.meta.env.VITE_GOOGLE_SEARCH_URI
 const googleApiKey =
     import.meta.env.VITE_GOOGLE_API_KEY
-if (
-    import.meta.env.MODE === 'production') {
-    url =
-        import.meta.env.VITE_API_URL || 'http://localhost:8000/';
-} else {
-    // Simulated checkbox prompt in a browser environment
-    const useServer = confirm('Use server URL?');
-
-    url = useServer ?
-        import.meta.env.VITE_API_URL || 'http://localhost:8000/' : 'http://127.0.0.1:8000/';
-}
+url = import.meta.env.VITE_API_URL 
 // jshint ignore:end
 
 const localURL = url;
