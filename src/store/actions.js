@@ -7,10 +7,11 @@ const googleUrl =
     import.meta.env.VITE_GOOGLE_SEARCH_URI
 const googleApiKey =
     import.meta.env.VITE_GOOGLE_API_KEY
-url = import.meta.env.VITE_API_URL 
+url =
+    import.meta.env.VITE_API_URL
 // jshint ignore:end
 
-const localURL = url;
+const localURL = 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
@@ -34,7 +35,7 @@ export default {
     },
 
     async getMovieData(context, payload) {
-        
+
 
         // Clear existing movie data
         context.commit('clearMovieData');
@@ -257,7 +258,7 @@ export default {
     //         console.error('Error in trailer request:', error);
     //     }
     // },
-/* jshint ignore:start */
+    /* jshint ignore:start */
     async createCSV(context) {
         await axios({
             url: localURL + "mod/createcsv",
@@ -329,7 +330,7 @@ export default {
         } else {
             alert("You are not logged in");
         }
-    
+
     },
 
     async deleteAdmin(context, payload) {
@@ -403,12 +404,38 @@ export default {
                 'Content-Type': 'application/json', // Add this line
             }
         }).then((response) => {
-            console.log(response.data);
             context.commit('setTopTenMovies', response.data);
-        }
-        ).catch((error) => {
+        }).catch((error) => {
             console.error('Error in login request:', error);
         });
+    },
+    pullComments(context, payload) {
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie,
+                platform: payload
+            };
+            console.log(data);
+            axios({
+                url: localURL + "movies/pullcomments",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json', // Add this line
+                }
+            }).then((response) => {
+                console.log("Comments pulled");
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        } else {
+            alert("You are not logged in");
+        }
     }
-
 };

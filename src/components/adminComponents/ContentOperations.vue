@@ -9,7 +9,7 @@
     <!-- ... (previous code) ... -->
 
     <!-- Pull Comments Form -->
-    <form class="pullCommentsForm">
+    <form class="pullCommentsForm" @submit.prevent>
       <h3>Pull Comments</h3>
       <label>Select platforms:</label>
       <div>
@@ -21,13 +21,9 @@
           <input type="checkbox" v-model="platformsToPull.reddit" />
           Reddit
         </label>
-        <label>
-          <input type="checkbox" v-model="platformsToPull.twitter" />
-          Twitter
-        </label>
         <!-- Add more platforms as needed -->
       </div>
-      <button type="submit">Pull Comments</button>
+      <button @click="pullComments" type="submit">Pull Comments</button>
     </form>
 
     <!-- Pull Movies Form -->
@@ -93,10 +89,6 @@ export default {
       platformsToPull: {
         youtube: false,
         reddit: false,
-        twitter: false,
-        startYear: 0,
-        endYear: 0
-        // Add more platforms as needed
       },
       movieInfoToPull: {
         name: false,
@@ -104,7 +96,9 @@ export default {
         releaseDate: false,
         rating: false,
         providers: false,
-        directors: false
+        directors: false,
+        endYear: 0,
+        startYear: 0
       },
       movieIdToRemove: ''
     }
@@ -113,8 +107,11 @@ export default {
     // ... (previous methods)
 
     pullComments() {
-      // TODO: Implement pull comments functionality
-      console.log('Pull Comments functionality', this.platformsToPull)
+      const platform = {
+        youtube: this.platformsToPull.youtube,
+        reddit: this.platformsToPull.reddit,
+      }
+      this.$store.dispatch('pullComments', platform)
     },
     pullMovies() {
       if (this.startYear > this.endYear) {
