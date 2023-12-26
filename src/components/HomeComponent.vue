@@ -84,6 +84,7 @@ export default {
     movieStrings() {
       const movieObject = this.$store.getters.getMovies
       let provider = ''
+      
       return movieObject.map((movie) => {
         try {
           const parsedMovie = JSON.parse(movie)
