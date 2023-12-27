@@ -88,7 +88,7 @@ export default {
       // ... (previous data)
       platformsToPull: {
         youtube: false,
-        reddit: false,
+        reddit: false
       },
       movieInfoToPull: {
         name: false,
@@ -104,15 +104,35 @@ export default {
     }
   },
   methods: {
-    // ... (previous methods)
 
-    pullComments() {
-      const platform = {
-        youtube: this.platformsToPull.youtube,
-        reddit: this.platformsToPull.reddit,
+    async pullComments() {
+      await this.$store.dispatch('requestMovieNames')
+      const movieNames = this.$store.getters.getMovieNames
+
+
+      if (movieNames.length === 0) {
+        alert('No movies in the database. Pull movies first.')
+        return
+      } else if (!this.platformsToPull.youtube && !this.platformsToPull.reddit) {
+        alert('Select at least one platform to pull comments from.')
+        return
+      } else {
+        for (const movie of movieNames) {
+          const movieData = {
+            movie: {
+              movieName: movie.movieName,
+              movieId: movie.movieId
+            },
+            platform: {
+              youtube: this.platformsToPull.youtube,
+              reddit: this.platformsToPull.reddit
+            }
+          }
+          this.$store.dispatch('pullComments', movieData)
+        }
       }
-      this.$store.dispatch('pullComments', platform)
     },
+
     pullMovies() {
       if (this.startYear > this.endYear) {
         alert('start year must be less than end year')

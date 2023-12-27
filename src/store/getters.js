@@ -28,5 +28,8 @@ export default {
     },
     getTopTenMovies(state) {
         return state.topTenMovies;
+    },
+    getMovieNames(state) {
+        return state.movieNames;
     }
 };

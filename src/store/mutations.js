@@ -34,5 +34,8 @@ export default {
     },
     setTopTenMovies(state, topTenMovies) {
         state.topTenMovies = topTenMovies;
+    },
+    setMovieNames(state, movieNames) {
+        state.movieNames = movieNames;
     }
 };

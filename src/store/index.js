@@ -17,7 +17,8 @@ const store = createStore({
         totalPageCount: 0,
         trailers: [],
         adminList: [],
-        topTenMovies: []
+        topTenMovies: [],
+        movieNames: [],
     },
     actions,
     mutations,

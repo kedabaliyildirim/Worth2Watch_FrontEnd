@@ -11,7 +11,8 @@ url =
     import.meta.env.VITE_API_URL
 // jshint ignore:end
 
-const localURL = url;
+// const localURL = url;
+const localURL = 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
@@ -385,7 +386,6 @@ export default {
                 }
             }).then((response) => {
                 console.log("Password changed");
-                console.log(response.data);
             }).catch((error) => {
                 console.error('Error in login request:', error);
             });
@@ -417,11 +417,11 @@ export default {
             authCookie = parts.pop().split(';').shift();
             const data = {
                 authToken: authCookie,
-                platform: payload
+                platform: payload.platform,
+                movie: payload.movie
             };
-            console.log(data);
             axios({
-                url: localURL + "movies/pullcomments",
+                url: localURL + "comments/pullcomments",
                 method: "POST",
                 data: data,
                 withCredentials: true,
@@ -437,5 +437,41 @@ export default {
         } else {
             alert("You are not logged in");
         }
-    }
+    },
+
+    requestMovieNames(context) {
+        return new Promise((resolve, reject) => {
+            let authCookie = null;
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${'authToken'}=`);
+
+            if (parts.length === 2) {
+                authCookie = parts.pop().split(';').shift();
+                const data = {
+                    authToken: authCookie
+                };
+
+                axios({
+                    url: localURL + "comments/getmovienames",
+                    method: "POST",
+                    data: data,
+                    withCredentials: true,
+                    headers: {
+                        'X-CSRFToken': context.state.csrfToken,
+                        'Content-Type': 'application/json',
+                    }
+                }).then((response) => {
+                    context.commit('setMovieNames', response.data);
+                    resolve(response.data); // Resolve the promise with the data
+                }).catch((error) => {
+                    console.error('Error in login request:', error);
+                    reject(error); // Reject the promise with the error
+                });
+            } else {
+                alert("You are not logged in");
+                reject("Not logged in"); // Reject the promise with a reason
+            }
+        });
+    },
+
 };
