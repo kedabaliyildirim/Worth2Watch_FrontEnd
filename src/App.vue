@@ -1,14 +1,17 @@
+<!-- emrah -->
+
 <template>
   <div id="app">
     <header>
       <div class="wrapper">
         <div class="links">
-          <nav>
-            <RouterLink class="mainLinks" to="/">Home</RouterLink>
+          <nav style=" margin-left: -450px;">
+            <span class="logo">W</span><span class="logo-green">2</span><span class="logo" style="margin-right: 70px;">W</span>
+            <RouterLink class="mainLinks" to="/">HomePage</RouterLink>
             <RouterLink class="mainLinks" to="/admin">Admin</RouterLink>
           </nav>
         </div>
-        <searchComponent />
+        <div id="search"><searchComponent /></div>
       </div>
       <div class="routerview">
         <RouterView />
@@ -120,8 +123,9 @@ export default {
   flex-direction: column;
   flex-wrap: wrap;
   align-content: flex-start;
-  padding: 1rem; /* Add padding to the wrapper for better spacing */
-  background-color: blue;
+  padding: 0.05rem; /* Add padding to the wrapper for better spacing */
+  background-color: #000000;
+  border-radius: 30px;
 }
 
 .RouteLink {

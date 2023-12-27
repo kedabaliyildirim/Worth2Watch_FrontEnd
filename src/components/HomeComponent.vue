@@ -1,8 +1,8 @@
 <template>
-  <recomandationComponent />
+  <recomandationComponent  v-if="currentPage < 2"/>
+
   <div class="mainBox">
     <div class="sortOptions">
-      <h1>{{ sortOrder }}</h1>
       <label for="sortSelect">Sort by:</label>
       <select id="sortSelect" v-model="sortOption" @change="setSortOption">
         <option value="movieName">Movie Name</option>
@@ -84,7 +84,7 @@ export default {
     movieStrings() {
       const movieObject = this.$store.getters.getMovies
       let provider = ''
-      
+
       return movieObject.map((movie) => {
         try {
           const parsedMovie = JSON.parse(movie)
@@ -153,39 +153,81 @@ export default {
 
 <style>
 
+#headline {
+  font-size: 20px;
+  color: #ccc9dc;
+  margin-top: 2%;
+}
+
+.custom-line {
+  border: 0.5px solid #ccc9dc; /* Set the color and style of the line */
+  margin: 50px 0px 10px 0px; /* Adjust the margin as needed */
+  width: 90%;
+}
+
+
 .mainBox {
-  margin-top: 5%;
+  margin-top: 1%;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-evenly;
   width: 90%;
-  background-color: #e6e7eb; /* Light gray background */
+  background-color: transparent; /* Light gray background */
+}
+
+.row-2 {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
 }
 
 .row {
   display: flex;
   justify-content: center;
-  margin: 10px 0;
+  margin-top: 70px;
 }
 
 .individualBox {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px;
-  max-height: 450px; /* Adjust max height as needed */
-  max-width: 300px; /* Adjust max width as needed */
-  color: black;
-  background-color: white;
-  box-shadow: 22px 10px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 0;
+  height: 440px; /* Adjust max height as needed */
+  width: 220px; /* Adjust max width as needed */
+  color: #ccc9dc;
+  margin-right: 4px;
+  border: 1px solid #ccc9dc;
+  border-radius: 20px;
+  background-color: transparent;
+}
+
+.individualBox-2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 0;
+  height: 300px; /* Adjust max height as needed */
+  width: 220px; /* Adjust max width as needed */
+  color: #ccc9dc;
+  margin-right: 4px;
+  border: 1px solid #ccc9dc;
+  border-radius: 20px;
+  background-color: transparent;
 }
 
 .poster {
-  max-width: 100%;
+  max-width: 75%;
+  max-height: 45%; /* Adjust max height of the poster */
+  object-fit: cover; /* Ensure the image covers the entire container */
+}
+
+.poster-2 {
+  max-width: 70%;
   max-height: 70%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
 }
-.movieGenre{
+
+.movieGenre {
   font-weight: bold;
 }
 .details {
@@ -195,14 +237,14 @@ export default {
 }
 
 .movieName {
-  font-weight: bold;
-  color: blue;
+  font-style: italic;
+  color: #ccc9dc;
+  font-size: 15px;
+  font-family: 'Playpen Sans', cursive;
 }
 
 .releaseDate {
   align-self: flex-end;
-  font-weight: bold;
-  /* font-size: 1.8em; Adjust font size for release date */
 }
 
 .movieGenre {

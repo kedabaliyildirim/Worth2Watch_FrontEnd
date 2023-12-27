@@ -1,15 +1,14 @@
+<!-- EMRAH -->
 <template>
+   <h2 id="headline">Top 10 Movies</h2>
   <div class="mainBox">
-    <div class="row" v-for="(movie, index) in movieStrings" :key="index">
+    <div class="row-2" v-for="(movie, index) in movieStrings" :key="index">
       <router-link :to="{ name: 'movie', params: { id: movie.movie_id } }">
-        <div class="individualBox">
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus, ipsa? Libero, magni
-          labore id reiciendis et ducimus vel dolore fugit cupiditate expedita dolorum, ratione
-          dignissimos omnis harum, autem suscipit. Exercitationem.
+        <div class="individualBox-2">
           <img
             :src="movie.imageURL"
             :alt="movie.movieName + ' Movie Poster'"
-            class="poster lazyload"
+            class="poster-2 lazyload"
           />
           <div class="details">
             <h3 class="movieName">{{ movie.movieName }}</h3>
@@ -18,6 +17,7 @@
       </router-link>
     </div>
   </div>
+  <hr class="custom-line">
 </template>
 
 <script>

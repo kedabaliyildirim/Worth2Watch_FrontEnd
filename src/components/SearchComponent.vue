@@ -1,9 +1,9 @@
 <template>
   <div class="searchDiv">
     <div class="searchBox">
-      <label for="searchBar">Search a movie</label>
-      <input class="searchInput" type="text" v-model="searchTerm" />
+      <input class="searchInput" type="text" v-model="searchTerm" placeholder="search movie " />
     </div>
+
     <div v-if="searchResults.length > 0" class="searchResults">
       <div class="searchItem" v-for="movie in searchResults" :key="movie._id" @click="emptyState">
         <RouterLink class="searchLinks" :to="{ name: 'movie', params: { id: movie.movie_id } }">
@@ -17,10 +17,7 @@
               {{ movie.movieName }}
             </h4>
           </div>
-          <div class="searchDetails">
-            <p style="font-weight: bold">{{ movie.movieGenre }}</p>
-            <p style="font-weight: bold">{{ movie.movieReleaseDate }}</p>
-          </div>
+          
         </RouterLink>
       </div>
     </div>
