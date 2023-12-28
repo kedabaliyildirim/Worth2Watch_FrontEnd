@@ -192,8 +192,8 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 15px 0;
-  height: 440px; /* Adjust max height as needed */
-  width: 220px; /* Adjust max width as needed */
+  max-height: 440px; /* Adjust max height as needed */
+  max-width: 220px; /* Adjust max width as needed */
   color: #ccc9dc;
   margin-right: 4px;
   border: 1px solid #ccc9dc;
@@ -206,8 +206,8 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 15px 0;
-  height: 300px; /* Adjust max height as needed */
-  width: 220px; /* Adjust max width as needed */
+  max-height: 400px; /* Adjust max height as needed */
+  max-width: 100px; /* Adjust max width as needed */
   color: #ccc9dc;
   margin-right: 4px;
   border: 1px solid #ccc9dc;
@@ -222,8 +222,8 @@ export default {
 }
 
 .poster-2 {
-  max-width: 70%;
-  max-height: 70%; /* Adjust max height of the poster */
+  max-width: 80%;
+  max-height: 80%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
 }
 
