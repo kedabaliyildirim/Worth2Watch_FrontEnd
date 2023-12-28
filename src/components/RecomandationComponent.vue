@@ -69,25 +69,6 @@ export default {
 </script>
 
 <style>
-/* .card {
-  max-width: 100px;
-  max-height: 125px;
-  background-image: linear-gradient(163deg, #00ff75 0%, #3700ff 100%);
-  border-radius: 20px;
-  transition: all 0.3s;
-  color: #ccc9dc;
-  margin-right: 2px;
-}
-
-.card2 {
-  background-color: #1a1a1a;
-  transition: all 0.2s;
-
-  width: 100px;
-  height: 125px;
-  border-radius: 20px;
-  color: #ccc9dc;
-} */
 
 .card {
   overflow: visible;

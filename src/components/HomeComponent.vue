@@ -1,5 +1,5 @@
 <template>
-  <recomandationComponent  v-if="currentPage < 2"/>
+  <recomandationComponent v-if="currentPage < 2" />
 
   <div class="mainBox">
     <div class="sortOptions">
@@ -18,16 +18,15 @@
     </div>
     <div class="row" v-for="(movie, index) in movieStrings" :key="index">
       <router-link :to="{ name: 'movie', params: { id: movie.movie_id } }">
-        <div class="individualBox">
-          <p class="releaseDate">{{ movie.movieReleaseDate }}</p>
-          <img
-            :src="movie.imageURL"
-            :alt="movie.movieName + ' Movie Poster'"
-            class="poster lazyload"
-          />
+        <!-- poster start -->
+
+        <div class="book">
           <div class="details">
-            <h3 class="movieName">{{ movie.movieName }}</h3>
-            <p class="movieGenre">{{ movie.movieGenre }}</p>
+            <p class="movieReleaseDate">{{ movie.movieReleaseDate }}</p>
+            <div class="description-3">
+              <p class="movieGenre">{{ movie.movieGenre }}</p>
+            </div>
+
             <div class="providers" v-if="movie.movieProviders !== 'No providers available'">
               <div
                 v-for="provider in movie.movieProviders"
@@ -46,7 +45,22 @@
             </div>
             <p v-else style="margin-top: 4%">No providers available</p>
           </div>
+          <div class="cover">
+            <img
+              :src="movie.imageURL"
+              :alt="movie.movieName + ' Movie Poster'"
+              class="poster lazyload"
+            />
+            <div class="description-2">
+              <div class="title-2">
+                <p class="title-2">{{ movie.movieName }}</p>
+              </div>
+              <p class="card-footer-2">{{ movie.movieRuntime }} &nbsp;</p>
+            </div>
+          </div>
         </div>
+
+        <!-- poster end -->
       </router-link>
     </div>
   </div>
@@ -99,7 +113,8 @@ export default {
             movieGenre: parsedMovie.movieGenres,
             imageURL: parsedMovie.imageURL,
             movieProviders: provider,
-            movie_id: parsedMovie._id.$oid
+            movie_id: parsedMovie._id.$oid,
+            movieRuntime: parsedMovie.movieRuntime
           }
         } catch (error) {
           console.log(error)
@@ -152,6 +167,147 @@ export default {
 </script>
 
 <style>
+.description-2 {
+  width: 80%;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #00000099;
+  backdrop-filter: blur(5px);
+  border-radius: 10px;
+}
+.description-3 {
+  margin-left: 30px;
+  width: 80%;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #00000099;
+  backdrop-filter: blur(5px);
+  border-radius: 10px;
+}
+
+.title-2 {
+  font-size: 12px;
+  max-width: 100%;
+  text-align: center;
+  color: #008000;
+}
+
+.title-2 p {
+  width: 100%;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.card-footer-2 {
+  color: #ffffff88;
+  margin-top: 5px;
+  font-size: 10px;
+  text-align: right;
+}
+.book {
+  max-height: 440px;
+  max-width: 220px;
+  flex-direction: column;
+  position: relative;
+  border-radius: 10px 30px;
+  width: 220px;
+  height: 300px;
+  background-color: #1b2a41;
+  -webkit-box-shadow: 1px 1px 12px #fff;
+  box-shadow: 0px 0px 8px #ccc9dc;
+  -webkit-transform: preserve-3d;
+  -ms-transform: preserve-3d;
+  transform: preserve-3d;
+  -webkit-perspective: 2000px;
+  perspective: 2000px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  color: #ccc9dc;
+}
+
+/* cover */
+.cover {
+  .movieGenre {
+    font-weight: bold;
+  }
+
+  .details {
+    padding: 15px;
+  }
+
+  .movieName {
+    font-style: italic;
+    color: #ccc9dc;
+    font-size: 15px;
+  }
+
+  .releaseDate {
+    align-self: flex-end;
+  }
+
+  .movieGenre {
+    font-style: italic;
+  }
+
+  .providers {
+    display: flex;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    object-fit: contain;
+  }
+
+  .providerLogo {
+    max-width: 20px; /* Adjust max width of provider logo */
+    margin-left: 10px;
+  }
+
+  top: 0;
+  position: absolute;
+  background-color: #0c1821;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #ccc9dc;
+  border-radius: 10px 30px;
+  cursor: pointer;
+  -webkit-transition: all 0.5s;
+  transition: all 0.5s;
+  -webkit-transform-origin: 0;
+  -ms-transform-origin: 0;
+  transform-origin: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  color: #ccc9dc;
+  flex-direction: column;
+}
+
+.book:hover .cover {
+  -webkit-transition: all 0.5s;
+  transition: all 0.5s;
+  -webkit-transform: rotatey(-80deg);
+  -ms-transform: rotatey(-80deg);
+  transform: rotatey(-80deg);
+}
+
+.movie-content-back {
+  font-size: 20px;
+  font-weight: bolder;
+}
+
+/* before */
 
 #headline {
   font-size: 20px;
@@ -160,11 +316,12 @@ export default {
 }
 
 .custom-line {
-  border: 0.5px solid #ccc9dc; /* Set the color and style of the line */
+  border: 1px solid black; /* Set the color and style of the line */
   margin: 50px 0px 10px 0px; /* Adjust the margin as needed */
   width: 90%;
+  -webkit-box-shadow: 1px 1px 5px #fff;
+  box-shadow: 0px 0px 3px #ccc9dc;
 }
-
 
 .mainBox {
   margin-top: 1%;
@@ -216,8 +373,8 @@ export default {
 }
 
 .poster {
-  max-width: 75%;
-  max-height: 45%; /* Adjust max height of the poster */
+  max-width: 60%;
+  max-height: 60%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
 }
 
@@ -225,41 +382,5 @@ export default {
   max-width: 80%;
   max-height: 80%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
-}
-
-.movieGenre {
-  font-weight: bold;
-}
-.details {
-  padding: 10px;
-  text-align: center;
-  font-weight: bold;
-}
-
-.movieName {
-  font-style: italic;
-  color: #ccc9dc;
-  font-size: 15px;
-  font-family: 'Playpen Sans', cursive;
-}
-
-.releaseDate {
-  align-self: flex-end;
-}
-
-.movieGenre {
-  font-style: italic;
-}
-
-.providers {
-  display: flex;
-  margin-top: 10px;
-  flex-wrap: wrap;
-  object-fit: contain;
-}
-
-.providerLogo {
-  max-width: 20px; /* Adjust max width of provider logo */
-  margin-left: 10px;
 }
 </style>

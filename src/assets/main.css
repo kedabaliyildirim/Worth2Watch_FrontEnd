@@ -217,25 +217,24 @@ nav a.router-link-exact-active {
 .movieGenre {
   font-weight: bold;
 }
+
 .details {
   padding: 10px;
+  margin-bottom: 15px;
   text-align: center;
   font-weight: bold;
 }
 
-.movieName {
+.movieReleaseDate {
   font-weight: bold;
-  color: blue;
-}
-
-.releaseDate {
-  align-self: flex-end;
-  font-weight: bold;
-  /* font-size: 1.8em; Adjust font size for release date */
+  font-style: italic;
+  color: #008000;
+  margin-bottom: 15px;
 }
 
 .movieGenre {
   font-style: italic;
+  margin-left: -10px;
 }
 
 .providers {
