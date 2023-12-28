@@ -25,7 +25,22 @@
       </div>
       <button @click="pullComments" type="submit">Pull Comments</button>
     </form>
-
+    <form class="pullCommentsForm" @submit.prevent>
+      <h3>Sentiment Analysis</h3>
+      <label>Select platforms:</label>
+      <div>
+        <label>
+          <input type="checkbox" v-model="platformsToAnalyse.youtube" />
+          YouTube
+        </label>
+        <label>
+          <input type="checkbox" v-model="platformsToAnalyse.reddit" />
+          Reddit
+        </label>
+        <!-- Add more platforms as needed -->
+      </div>
+      <button @click="analyseSentiment" type="submit">Sentiment Analysis</button>
+    </form>
     <!-- Pull Movies Form -->
     <form class="pullMoviesForm" @submit.prevent>
       <h3>Pull Movies</h3>
@@ -62,7 +77,7 @@
       <input class="PageNoToPulled" type="number" v-model="endYear" />
       <button @click="pullMovies">Pull Movies</button>
     </form>
-
+    <button @click="testPopDb" class="logoutButton">Force pull top 10 movies</button>
     <!-- Admin Deletion Form -->
     <div class="dangerZone">
       <h3>Danger Zone</h3>
@@ -90,6 +105,10 @@ export default {
         youtube: false,
         reddit: false
       },
+      platformsToAnalyse: {
+        youtube: false,
+        reddit: false
+      },
       movieInfoToPull: {
         name: false,
         description: false,
@@ -104,11 +123,9 @@ export default {
     }
   },
   methods: {
-
     async pullComments() {
       await this.$store.dispatch('requestMovieNames')
       const movieNames = this.$store.getters.getMovieNames
-
 
       if (movieNames.length === 0) {
         alert('No movies in the database. Pull movies first.')
@@ -118,18 +135,32 @@ export default {
         return
       } else {
         for (const movie of movieNames) {
-          const movieData = {
-            movie: {
-              movieName: movie.movieName,
-              movieId: movie.movieId
-            },
-            platform: {
-              youtube: this.platformsToPull.youtube,
-              reddit: this.platformsToPull.reddit
+          setTimeout(() => {
+            const movieData = {
+              movie: {
+                movieName: movie.movieName,
+                movieId: movie.movieId
+              },
+              platform: {
+                youtube: this.platformsToPull.youtube,
+                reddit: this.platformsToPull.reddit
+              }
             }
-          }
-          this.$store.dispatch('pullComments', movieData)
+            this.$store.dispatch('pullComments', movieData)
+          }, 2000)
         }
+      }
+    },
+    async analyseSentiment() {
+      if (!this.platformsToAnalyse.youtube && !this.platformsToAnalyse.reddit) {
+        alert('Select at least one platform to pull comments from.')
+        return
+      } else {
+        const platformData = {
+          youtube: this.platformsToAnalyse.youtube,
+          reddit: this.platformsToAnalyse.reddit
+        }
+        this.$store.dispatch('analyseSentiment', platformData)
       }
     },
 
@@ -148,6 +179,9 @@ export default {
         this.$store.dispatch('getDatabase', payload)
         // TODO: Implement pull movies functionality
       }
+    },
+    testPopDb() {
+      this.$store.dispatch('testPopularDb')
     },
     removeAllComments() {
       // TODO: Implement remove all comments functionality

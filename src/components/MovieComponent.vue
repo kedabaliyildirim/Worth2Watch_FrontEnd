@@ -52,13 +52,23 @@
       </div>
       <div class="commentSection">
         <div class="commentBody">
-            <h3>Youtube comments</h3>
+          <h3>Youtube comments</h3>
+          <ul>
+            <li v-for="comment in movieObj.movieComments.youtubeComments" :key="comment">
+              {{ comment.comment }}
+            </li>
+          </ul>
         </div>
         <div class="commentBody">
-            <h3>Reddit Comments</h3>
+          <h3>Reddit Comments</h3>
+          <ul>
+            <li v-for="comment in movieObj.movieComments.redditComments" :key="comment">
+              {{ comment.comment }}
+            </li>
+          </ul>
         </div>
         <div class="commentBody">
-            <h3>Custom comments</h3>
+          <h3>Custom comments</h3>
         </div>
       </div>
     </div>

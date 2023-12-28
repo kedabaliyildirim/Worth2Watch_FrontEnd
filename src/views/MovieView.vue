@@ -23,7 +23,8 @@ export default {
         movieWriter: JSON.parse(movieObj).movieWriter,
         movieScore: JSON.parse(movieObj).movieScore,
         movieActors: JSON.parse(movieObj).movieActors,
-        description: JSON.parse(movieObj).movieDescription
+        description: JSON.parse(movieObj).movieDescription,
+        movieComments: JSON.parse(movieObj).Comments,
       }
     }
     // For demo purposes, using Lorem Ipsum for comments

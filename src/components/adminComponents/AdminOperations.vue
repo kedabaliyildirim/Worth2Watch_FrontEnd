@@ -22,7 +22,10 @@
       <input type="password" v-model="changePw" required />
       <button @click="changePassword" type="submit">Change Password</button>
     </form>
-    <button @click="createCSV" class="logoutButton">Create CSV</button>
+    <div>
+      <button @click="createCSV" class="logoutButton">Create CSV</button>
+
+    </div>
 
     <!-- Admin Deletion Form -->
     <div class="dangerZone">
@@ -75,7 +78,8 @@ export default {
     },
     createCSV() {
       this.$store.dispatch('createCSV')
-    }
+    },
+   
   },
   computed: {
     adminList() {

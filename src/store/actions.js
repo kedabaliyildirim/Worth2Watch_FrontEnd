@@ -473,5 +473,32 @@ export default {
             }
         });
     },
+    testPopularDb(context) { 
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie
+            };
+            axios({
+                url: localURL + "mod/testpopulardb",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json', // Add this line
+                }
+            }).then((response) => {
+                console.log(response.data);
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        } else {
+            alert("You are not logged in");
+        }
+    }
 
 };
