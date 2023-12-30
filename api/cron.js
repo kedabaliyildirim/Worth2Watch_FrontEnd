@@ -4,10 +4,8 @@ import axios from 'axios';
 // jshint ignore:start
 let url;
 let authKey
-url =
-    import.meta.env.VITE_API_URL
-authKey =
-    import.meta.env.VITE_AUTH_TOKEN
+url = process.env.VITE_API_URL
+authKey = process.env.VITE_AUTH_TOKEN
 // jshint ignore:end
 const localURL = url;
 const pullComments = async (authCookie, movie) => {
