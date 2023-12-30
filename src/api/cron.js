@@ -1,13 +1,13 @@
 /* eslint-disable no-unused-vars */
 import axios from 'axios';
-import process from 'process';
 
 // jshint ignore:start
-
 let url;
 let authKey
-url = process.env.VITE_API_URL;
-authKey = process.env.VITE_AUTH_TOKEN;
+url =
+    import.meta.env.VITE_API_URL
+authKey =
+    import.meta.env.VITE_AUTH_TOKEN
 // jshint ignore:end
 const localURL = url;
 const pullComments = async (authCookie, movie) => {

@@ -7,7 +7,7 @@
     ],
     "crons": [
         {
-            "path": "/api/cron.js",
+            "path": "/src/api/cron.js",
             "schedule": "0 1 * * *"
         }
     ]
