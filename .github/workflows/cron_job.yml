@@ -1,0 +1,27 @@
+name: Cron Job
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Schedule to run every day at midnight
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Cron Job
+        run: node ./api/cron.js
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_AUTH_TOKEN: ${{ secrets.VITE_AUTH_TOKEN }}
