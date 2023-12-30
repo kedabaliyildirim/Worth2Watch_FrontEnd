@@ -1,4 +1,4 @@
-<!-- EMRAH -->
+
 <template>
   <h2 id="headline">Top 10 Movies</h2>
   <div class="mainBox">

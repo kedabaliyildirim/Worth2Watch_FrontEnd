@@ -67,6 +67,7 @@
         <!-- poster end -->
       </router-link>
     </div>
+    <hr class="custom-line" />
     <div class="pagination">
       <button class="button" @click="prevPage" :disabled="currentPage === 1">Previous</button>
       <span v-for="pageNumber in visiblePageNumbers" :key="pageNumber">

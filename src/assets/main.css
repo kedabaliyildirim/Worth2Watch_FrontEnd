@@ -1,5 +1,6 @@
 @import './base.css';
 @import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400&family=Playpen+Sans:wght@100&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Diphylleia&display=swap');
 /* EMRAH */
 
 #html {
@@ -9,7 +10,6 @@
   margin: 0px;
   font-weight: normal;
 }
-
 
 #app {
   flex-direction: column;
@@ -25,7 +25,6 @@ a,
   color: hsla(120, 100%, 37%, 1);
   transition: 0.4s;
 }
-
 
 @media (min-width: 1024px) {
   body {
@@ -100,7 +99,7 @@ nav a.router-link-exact-active {
   color: var(--color-text);
 }
 
-#search{
+#search {
   margin-left: 1100px;
 }
 
@@ -274,10 +273,63 @@ nav a.router-link-exact-active {
 /*  */
 /*  */
 /* MOVIE PAGE STYLES  */
+.custom-line {
+  border: 1px solid black; /* Set the color and style of the line */
+  -webkit-box-shadow: 1px 1px 5px #fff;
+  box-shadow: 0px 0px 3px #ccc9dc;
+}
+
 .MoviePageMain {
   display: flex;
-  margin-top: 5%;
-  width: 100%;
+  margin-top: 3%;
+  width: 85%;
+  flex-direction: column;
+}
+
+.Headline {
+  display: flex;
+  justify-content: space-between;
+}
+
+.custom-line-2 {
+  margin: 5px 0;
+  width: 450px;
+  border: 1px solid black; /* Set the color and style of the line */
+  -webkit-box-shadow: 1px 1px 5px #fff;
+  box-shadow: 0px 0px 2px #ccc9dc;
+}
+
+.detailsContainer-2 {
+  margin-top: 2%;
+  float: left;
+}
+
+.star {
+  margin-top: 3%;
+  float: left;
+  margin-left: 15%;
+  text-align: center;
+  font-size: 10px;
+}
+
+.img-star {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  margin-bottom: 20px;
+}
+
+.description-4 {
+  width: 300px;
+  margin: 20px 0;
+  padding: 1px;
+  background-color: #1b2a41;
+  border: #0766ad solid 1px;
+  backdrop-filter: blur(5px);
+  border-radius: 30px;
+  text-align: center;
+  font-style: italic;
+  font-size: 14px;
 }
 
 .MoviePagePoster {
@@ -285,38 +337,45 @@ nav a.router-link-exact-active {
   display: flex;
   flex-direction: column;
   align-items: center;
+  float: left;
+}
+.movieDetailLabel {
+  color: #fffae8;
 }
 
 .movieTitle {
   font-size: 2rem;
-  margin-bottom: 10px;
-  color: #ccf;
+  color: #ccc9cc;
+  font-family: 'Diphylleia', serif;
+}
+
+.movieDuration {
+  font-size: 0.8rem;
+  color: #ccc9cc;
+  font-family: 'Diphylleia', serif;
+  margin-top: 30px;
 }
 
 .movieScoreList {
   list-style: none;
   padding: 0;
-  margin: 0;
-  font-size: 1rem;
+  margin-top: -20px;
+  font-size: 0.6rem;
   color: #ccf;
 }
 
 .movieScoreList li {
-  margin-bottom: 5px;
+  margin-bottom: 7px;
 }
 
+
+
 .moviePoster {
-  width: 100%;
+  width: 50%;
   height: auto;
   border-radius: 8px;
   margin-top: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.MoviePageDetails {
-  margin-left: 5%;
-  margin-right: 5%;
-  width: 65%;
 }
 
 .sectionHeader {
@@ -325,8 +384,8 @@ nav a.router-link-exact-active {
 
 .trailerHeader,
 .detailsHeader {
-  font-size: 1.5rem;
-  color: #ccf;
+  font-size: 1.2rem;
+  color: #fffae8;
   margin-bottom: 15px;
 }
 
@@ -342,6 +401,11 @@ nav a.router-link-exact-active {
   margin-bottom: 15px;
 }
 
+.detailsContainer-2 {
+  margin-bottom: 15px;
+  float: left;
+}
+
 .movieDetailLabel {
   color: #555;
 }
@@ -350,12 +414,22 @@ nav a.router-link-exact-active {
   line-height: 1.5;
 }
 
+/* <div class="commentBody">
+<h3>Reddit Comments</h3>
+<ul>
+  <li v-for="comment in movieObj.movieComments.redditComments" :key="comment">
+    {{ comment.comment }}
+  </li>
+</ul>
+</div>  */
+
 .commentSection {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex;
+  justify-content: space-between;
   width: 100%;
 }
+
 .commentBody {
   display: flex;
   flex-direction: column;
