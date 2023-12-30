@@ -132,10 +132,11 @@ nav a.router-link-exact-active {
   position: absolute;
   flex-direction: column;
   justify-content: center;
-  background-color: #183c58;
+  background-color: transparent;
   color: white;
-  width: 15%;
+  width: 20%;
   z-index: 1;
+  border: 1px solid #ccc9dc;
 }
 .searchLinks {
   display: flex;
@@ -175,11 +176,10 @@ nav a.router-link-exact-active {
 
 /* SORT */
 
-
 .sortOptions {
-  color: black;
+  color: #ccc9dc;
   position: absolute;
-  right: 7%;
+  right: 10%;
 }
 .mainBox {
   margin-top: 5%;

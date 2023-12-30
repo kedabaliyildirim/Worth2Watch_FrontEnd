@@ -3,17 +3,16 @@
 
   <div class="mainBox">
     <div class="sortOptions">
-      <label for="sortSelect">Sort by:</label>
+      <label for="sortSelect">Sort by: </label>
       <select id="sortSelect" v-model="sortOption" @change="setSortOption">
-        <option value="movieName">Movie Name</option>
         <option value="movieReleaseDate">Release Date</option>
         <option value="imdbRating">IMDB Rating</option>
-        <option value="tmdbRating">TMDB Rating</option>
+        <option value="movieName">Movie Name</option>
       </select>
-      <label for="sortOrderSelect">Sort order:</label>
+      <label style="margin-left: 30px" for="sortOrderSelect">Sort order:</label>
       <select id="sortOrderSelect" v-model="sortOrder" @change="setSortOption">
-        <option value="1">Descending</option>
         <option value="-1">Ascending</option>
+        <option value="1">Descending</option>
       </select>
     </div>
     <div class="row" v-for="(movie, index) in movieStrings" :key="index">
@@ -26,8 +25,12 @@
             <div class="description-3">
               <p class="movieGenre">{{ movie.movieGenre }}</p>
             </div>
-
-            <div class="providers" v-if="movie.movieProviders !== 'No providers available'">
+            <!-- provider -->
+            <div
+              style="margin-top: 30px; margin-left: 20px; width: 80%"
+              class="providers"
+              v-if="movie.movieProviders !== 'No providers available'"
+            >
               <div
                 v-for="provider in movie.movieProviders"
                 :key="provider.provider_id"
@@ -37,12 +40,13 @@
                   :src="
                     getProviderLogoPath('https://image.tmdb.org/t/p/original' + provider.logo_path)
                   "
+                  style="max-width: 22px"
                   alt="Provider Logo"
                   class="providerLogo"
                 />
-                {{ provider.provider_name }}
               </div>
             </div>
+
             <p v-else style="margin-top: 4%">No providers available</p>
           </div>
           <div class="cover">
@@ -63,16 +67,20 @@
         <!-- poster end -->
       </router-link>
     </div>
-  </div>
-
-  <div class="pagination">
-    <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
-    <span v-for="pageNumber in visiblePageNumbers" :key="pageNumber">
-      <button @click="goToPage(pageNumber)" :class="{ active: currentPage === pageNumber }">
-        {{ pageNumber }}
-      </button>
-    </span>
-    <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+    <div class="pagination">
+      <button class="button" @click="prevPage" :disabled="currentPage === 1">Previous</button>
+      <span v-for="pageNumber in visiblePageNumbers" :key="pageNumber">
+        <button
+          class="button"
+          @click="goToPage(pageNumber)"
+          :class="{ active: currentPage === pageNumber }"
+        >
+          {{ pageNumber }}
+        </button>
+      </span>
+      <button class="button" @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+    </div>
+    <div class="copyright">©w2w</div>
   </div>
 </template>
 
@@ -114,7 +122,7 @@ export default {
             imageURL: parsedMovie.imageURL,
             movieProviders: provider,
             movie_id: parsedMovie._id.$oid,
-            movieRuntime: parsedMovie.movieRuntime
+            movieRuntime: parsedMovie.movieRuntime9dc
           }
         } catch (error) {
           console.log(error)
@@ -167,16 +175,41 @@ export default {
 </script>
 
 <style>
+.pagination {
+  bottom: 0;
+  left: 0;
+  width: 25%;
+  background-color: transparent;
+  padding: 1px;
+  text-align: center;
+}
+.button {
+  background-color: transparent;
+  color: #ccc9dc;
+}
+
+.copyright {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 1px;
+  text-align: center;
+  margin-top: 15px;
+  font-size: 12px;
+}
+
 .description-2 {
   width: 80%;
   margin-top: 10px;
+  margin-left: 10px;
   padding: 5px;
   background-color: #00000099;
   backdrop-filter: blur(5px);
   border-radius: 10px;
 }
 .description-3 {
-  margin-left: 30px;
+  margin-left: 20px;
   width: 80%;
   margin-top: 10px;
   padding: 5px;
@@ -234,40 +267,6 @@ export default {
 
 /* cover */
 .cover {
-  .movieGenre {
-    font-weight: bold;
-  }
-
-  .details {
-    padding: 15px;
-  }
-
-  .movieName {
-    font-style: italic;
-    color: #ccc9dc;
-    font-size: 15px;
-  }
-
-  .releaseDate {
-    align-self: flex-end;
-  }
-
-  .movieGenre {
-    font-style: italic;
-  }
-
-  .providers {
-    display: flex;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    object-fit: contain;
-  }
-
-  .providerLogo {
-    max-width: 20px; /* Adjust max width of provider logo */
-    margin-left: 10px;
-  }
-
   top: 0;
   position: absolute;
   background-color: #0c1821;
@@ -292,6 +291,42 @@ export default {
   justify-content: center;
   color: #ccc9dc;
   flex-direction: column;
+}
+
+/* cover child elements */
+.cover .movieGenre {
+  font-weight: bold;
+}
+
+.cover .details {
+  padding: 15px;
+}
+
+.cover .movieName {
+  font-style: italic;
+  color: #ccc9dc;
+  font-size: 15px;
+}
+
+.cover .releaseDate {
+  align-self: flex-end;
+}
+
+.cover .movieGenre {
+  font-style: italic;
+}
+
+.cover .providers {
+  flex-direction: column;
+  display: flex;
+  padding-left: 20px;
+  margin-top: 50px;
+  flex-wrap: wrap;
+  object-fit: contain;
+}
+
+.cover .providerLogo {
+  max-width: 20px; /* Adjust max width of provider logo */
 }
 
 .book:hover .cover {
