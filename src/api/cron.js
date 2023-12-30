@@ -41,6 +41,7 @@ const requestMovieNames = async (authCookie) => {
     };
 
     try {
+        console.log("@requestMovieNames");
         const response = await axios({
             url: localURL + "comments/getmovienames",
             method: "POST",
@@ -58,10 +59,12 @@ const requestMovieNames = async (authCookie) => {
 
 const cron_main = async () => {
     try {
+        console.log("Cron job started");
         
         const movieNames = await requestMovieNames(authKey);
         setTimeout(async () => {
             for (const movie of movieNames) {
+                console.log(`Processing movie: ${movie}`);
                 await pullComments(authKey, movie);
             }
         }, 2000);
