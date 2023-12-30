@@ -124,9 +124,9 @@ export default {
   },
   methods: {
     async pullComments() {
+      console.log('@pullComments')
       await this.$store.dispatch('requestMovieNames')
       const movieNames = this.$store.getters.getMovieNames
-
       if (movieNames.length === 0) {
         alert('No movies in the database. Pull movies first.')
         return
@@ -135,19 +135,16 @@ export default {
         return
       } else {
         for (const movie of movieNames) {
-          setTimeout(() => {
-            const movieData = {
-              movie: {
-                movieName: movie.movieName,
-                movieId: movie.movieId
-              },
-              platform: {
-                youtube: this.platformsToPull.youtube,
-                reddit: this.platformsToPull.reddit
-              }
+          const movieData = {
+            movie: {
+              movieName: movie.movieName,
+            },
+            platform: {
+              youtube: this.platformsToPull.youtube,
+              reddit: this.platformsToPull.reddit
             }
-            this.$store.dispatch('pullComments', movieData)
-          }, 2000)
+          }
+          this.$store.dispatch('pullComments', movieData)
         }
       }
     },

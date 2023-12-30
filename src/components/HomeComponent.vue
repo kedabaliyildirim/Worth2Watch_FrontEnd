@@ -418,4 +418,4 @@ export default {
   max-height: 80%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
 }
-</style>
+</style>z

@@ -11,8 +11,8 @@ url =
     import.meta.env.VITE_API_URL
 // jshint ignore:end
 
-const localURL = url;
-// const localURL = 'http://127.0.0.1:8000/';
+// const localURL = url;
+const localURL = 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
@@ -420,6 +420,7 @@ export default {
                 platform: payload.platform,
                 movie: payload.movie
             };
+            console.log("@pullComments");
             axios({
                 url: localURL + "comments/pullcomments",
                 method: "POST",
@@ -450,7 +451,7 @@ export default {
                 const data = {
                     authToken: authCookie
                 };
-
+                console.log("@requestMovieNames");
                 axios({
                     url: localURL + "comments/getmovienames",
                     method: "POST",
