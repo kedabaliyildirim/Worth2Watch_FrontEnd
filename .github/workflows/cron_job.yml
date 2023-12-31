@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-      - run: echo "🎉 The job was automatically triggered by a
+      - run: echo "🎉 The job was automatically triggered by a scheduled event"
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
