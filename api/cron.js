@@ -58,7 +58,7 @@ const requestMovieNames = async (authCookie) => {
 const cron_main = async () => {
     try {
         console.log("Cron job started");
-        
+        console.log(localURL)
         const movieNames = await requestMovieNames(authKey);
         setTimeout(async () => {
             for (const movie of movieNames) {
