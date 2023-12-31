@@ -2,7 +2,7 @@ name: Cron Job
 
 on:
   schedule:
-    - cron: '18 3 * * *' # Schedule to run every day at midnight
+    - cron: '25 0 * * *' # Schedule to run every day at midnight
 
 jobs:
   run:
