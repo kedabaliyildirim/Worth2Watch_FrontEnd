@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import axios from 'axios';
+const axios = require('axios')
 
 // jshint ignore:start
 let url;
