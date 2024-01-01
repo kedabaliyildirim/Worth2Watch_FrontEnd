@@ -99,9 +99,6 @@ nav a.router-link-exact-active {
   color: var(--color-text);
 }
 
-#search {
-  margin-left: 1100px;
-}
 
 .searchBox {
   position: absolute;

@@ -25,31 +25,31 @@
 
         <p>
           <strong style="color: #fff5ee; margin-right: 8px" class="movieDetailLabel"
-            >Release Date:
-          </strong>
-          {{ movieObj.movieReleaseDate }}
+            >Release Date:</strong
+          >
+          {{ formatDate(movieObj.movieReleaseDate) }}
         </p>
         <hr class="custom-line-2" />
 
         <p>
           <strong style="color: #fff5ee; margin-right: 8px" class="movieDetailLabel"
-            >Director:
-          </strong>
+            >Director:</strong
+          >
           {{ movieObj.movieDirector }}
         </p>
         <hr class="custom-line-2" />
 
         <p>
           <strong style="color: #fff5ee; margin-right: 8px" class="movieDetailLabel"
-            >Actors:
-          </strong>
+            >Actors:</strong
+          >
           {{ movieObj.movieActors }}
         </p>
         <hr class="custom-line-2" />
       </div>
       <!-- alt -->
       <div class="star">
-        <img style="width: 75%; height: 75%;" src="@/assets/icons/star.png" alt="My Icon" />
+        <img style="width: 75%; height: 75%" src="@/assets/icons/star.png" alt="My Icon" />
 
         <ul class="movieScoreList">
           <li v-for="rating in movieObj.movieScore" :key="rating.Source">
@@ -82,7 +82,7 @@
           </div>
           <div
             class="faq-answer"
-            v-for="comment in movieObj.movieComments.youtubeComments" 
+            v-for="comment in movieObj.movieComments.youtubeComments"
             :key="comment"
           >
             {{ comment.comment }}
@@ -90,7 +90,6 @@
         </div>
       </div>
       <!-- Youtube finish -->
-
 
       <!-- reddit-start -->
       <div class="commentSection">
@@ -103,7 +102,7 @@
             />
             Reddit Comments
             <p class="sentiment-analyze">👍% 61 - 💩 % 39</p>
-             <!-- sentiment analiz -->
+            <!-- sentiment analiz -->
           </div>
           <div
             class="faq-answer-2"
@@ -142,6 +141,11 @@ export default {
           answers[i].style.display = 'none'
         }
       }
+    },
+    formatDate(value) {
+      const options = { day: 'numeric', month: 'short', year: 'numeric' }
+      const date = new Date(value)
+      return date.toLocaleDateString('en-GB', options)
     }
   }
 }

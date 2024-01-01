@@ -4,13 +4,13 @@
   <div class="mainBox">
     <!-- sort start -->
     <div class="sortOptions">
-      <label for="sortSelect">Sort by: </label>
+      <label style="margin-right: 5px" for="sortSelect">Sort by: </label>
       <select id="sortSelect" v-model="sortOption" @change="setSortOption">
         <option value="movieReleaseDate">Release Date</option>
         <option value="imdbRating">IMDB Rating</option>
         <option value="movieName">Movie Name</option>
       </select>
-      <label style="margin-left: 30px" for="sortOrderSelect">Sort order:</label>
+      <label style="margin-left: 30px; margin-right: 7px" for="sortOrderSelect">Sort order:</label>
       <select id="sortOrderSelect" v-model="sortOrder" @change="setSortOption">
         <option value="-1">Ascending</option>
         <option value="1">Descending</option>
@@ -23,7 +23,7 @@
 
         <div class="book">
           <div class="details">
-            <p class="movieReleaseDate">{{ movie.movieReleaseDate }}</p>
+            <p class="movieReleaseDate">{{ formatDate(movie.movieReleaseDate) }}</p>
             <div class="description-3">
               <p class="movieGenre">{{ movie.movieGenre }}</p>
             </div>
@@ -80,9 +80,9 @@
 
 <script>
 import recomandationComponent from './RecomandationComponent.vue'
+
 export default {
   components: {
-    // eslint-disable-next-line vue/no-unused-components
     recomandationComponent
   },
   data() {
@@ -111,7 +111,7 @@ export default {
           }
           return {
             movieName: parsedMovie.movieName,
-            movieReleaseDate: parsedMovie.movieReleaseDate,
+            movieReleaseDate: this.formatDate(parsedMovie.movieReleaseDate),
             movieGenre: parsedMovie.movieGenres,
             imageURL: parsedMovie.imageURL,
             movieProviders: provider,
@@ -123,7 +123,6 @@ export default {
         }
       })
     },
-
     visiblePageNumbers() {
       const totalVisiblePages = 6 // 3 before current, current, 2 after current
       const halfVisiblePages = Math.floor(totalVisiblePages / 2)
@@ -174,11 +173,15 @@ export default {
         sort_order: parseInt(this.sortOrder) // Convert sortOrder to a number
       }
       this.$store.dispatch('getMovieData', payload)
+    },
+    formatDate(value) {
+      const options = { day: 'numeric', month: 'short', year: 'numeric' }
+      const date = new Date(value)
+      return date.toLocaleDateString('en-GB', options)
     }
   }
 }
 </script>
-
 <style>
 .pagination {
   bottom: 0;

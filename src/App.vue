@@ -4,15 +4,15 @@
   <div id="app">
     <header>
       <div class="wrapper">
-        <div class="links">
-          <nav style="margin-left: -450px">
+        <div>
+          <nav style="margin-left: -200%">
             <span class="logo">W</span><span class="logo-green">2</span
             ><span class="logo" style="margin-right: 70px">W</span>
             <RouterLink class="mainLinks" to="/">HomePage</RouterLink>
             <RouterLink class="mainLinks" to="/admin">Admin</RouterLink>
           </nav>
+          <div id="search"><searchComponent /></div>
         </div>
-        <div id="search"><searchComponent /></div>
       </div>
       <div class="routerview">
         <RouterView />
@@ -41,7 +41,7 @@ export default {
     this.$store.dispatch('getMovieData', {
       page: 1,
       page_size: 20,
-      sort_by: "movieReleaseDate",
+      sort_by: 'movieReleaseDate',
       sort_order: 1
     })
     this.$store.dispatch('getTopTen')
@@ -111,24 +111,12 @@ export default {
 </script>
 
 <style>
-.divBody {
-  display: flex;
-  flex-direction: column;
-  place-items: center;
-  align-content: center;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  padding: 1rem; /* Add padding to the wrapper for better spacing */
-}
 .wrapper {
   display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  padding: 0.05rem; /* Add padding to the wrapper for better spacing */
+  align-content: center;
   background-color: #000000;
   border-radius: 30px;
+  justify-content: space-between;
 }
 
 .RouteLink {
