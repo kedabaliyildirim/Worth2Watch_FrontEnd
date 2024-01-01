@@ -5,8 +5,9 @@
     <header>
       <div class="wrapper">
         <div class="links">
-          <nav style=" margin-left: -450px;">
-            <span class="logo">W</span><span class="logo-green">2</span><span class="logo" style="margin-right: 70px;">W</span>
+          <nav style="margin-left: -450px">
+            <span class="logo">W</span><span class="logo-green">2</span
+            ><span class="logo" style="margin-right: 70px">W</span>
             <RouterLink class="mainLinks" to="/">HomePage</RouterLink>
             <RouterLink class="mainLinks" to="/admin">Admin</RouterLink>
           </nav>
@@ -36,12 +37,14 @@ export default {
   },
   created() {
     // 1. Dispatch action to get movie data
-    
-   this.$store.dispatch('getMovieData', {
-       page: 1,
-       page_size: 20
-   });
-   this.$store.dispatch('getTopTen');
+
+    this.$store.dispatch('getMovieData', {
+      page: 1,
+      page_size: 20,
+      sort_by: "movieReleaseDate",
+      sort_order: 1
+    })
+    this.$store.dispatch('getTopTen')
 
     // 2. Check for authentication token in the Vuex store
     const authToken = this.$store.getters.getAuthToken

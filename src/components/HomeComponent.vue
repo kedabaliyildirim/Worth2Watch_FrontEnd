@@ -2,6 +2,7 @@
   <recomandationComponent v-if="currentPage < 2" />
 
   <div class="mainBox">
+    <!-- sort start -->
     <div class="sortOptions">
       <label for="sortSelect">Sort by: </label>
       <select id="sortSelect" v-model="sortOption" @change="setSortOption">
@@ -15,6 +16,7 @@
         <option value="1">Descending</option>
       </select>
     </div>
+    <!-- sort finish -->
     <div class="row" v-for="(movie, index) in movieStrings" :key="index">
       <router-link :to="{ name: 'movie', params: { id: movie.movie_id } }">
         <!-- poster start -->
@@ -70,15 +72,6 @@
     <hr class="custom-line" />
     <div class="pagination">
       <button class="button" @click="prevPage" :disabled="currentPage === 1">Previous</button>
-      <span v-for="pageNumber in visiblePageNumbers" :key="pageNumber">
-        <button
-          class="button"
-          @click="goToPage(pageNumber)"
-          :class="{ active: currentPage === pageNumber }"
-        >
-          {{ pageNumber }}
-        </button>
-      </span>
       <button class="button" @click="nextPage" :disabled="currentPage === totalPages">Next</button>
     </div>
     <div class="copyright">©w2w</div>
@@ -96,7 +89,7 @@ export default {
     return {
       itemsPerPage: 20,
       currentPage: 1,
-      sortOption: 'movieName',
+      sortOption: 'movieReleaseDate',
       sortOrder: 1
     }
   },
@@ -123,7 +116,7 @@ export default {
             imageURL: parsedMovie.imageURL,
             movieProviders: provider,
             movie_id: parsedMovie._id.$oid,
-            movieRuntime: parsedMovie.movieRuntime9dc
+            movieRuntime: parsedMovie.movieRuntime
           }
         } catch (error) {
           console.log(error)
@@ -149,14 +142,25 @@ export default {
       return `https://image.tmdb.org/t/p/original${logoPath}`
     },
     prevPage() {
-      if (this.currentPage > 1) {
+      if (this.currentPage < this.totalPages) {
         this.currentPage--
+        this.$store.dispatch('getMovieData', {
+          page: this.currentPage,
+          page_size: 20,
+          sort_by: this.sortOption,
+          sort_order: parseInt(this.sortOrder)
+        })
       }
     },
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++
-        this.$store.dispatch('getMovieData', { page: this.currentPage, page_size: 20 })
+        this.$store.dispatch('getMovieData', {
+          page: this.currentPage,
+          page_size: 20,
+          sort_by: this.sortOption,
+          sort_order: parseInt(this.sortOrder)
+        })
       }
     },
     goToPage(pageNumber) {
@@ -419,4 +423,5 @@ export default {
   max-height: 80%; /* Adjust max height of the poster */
   object-fit: cover; /* Ensure the image covers the entire container */
 }
-</style>z
+</style>
+z
