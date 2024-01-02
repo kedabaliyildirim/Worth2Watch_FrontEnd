@@ -81,8 +81,7 @@
 </template>
 
 <script>
-import recomandationComponent from './RecomandationComponent.vue'
-
+import recomandationComponent from '@/RecomandationComponent.vue'
 export default {
   components: {
     recomandationComponent

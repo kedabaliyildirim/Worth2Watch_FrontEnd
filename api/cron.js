@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 const axios = require('axios')
 
@@ -19,7 +20,7 @@ const pullComments = async (authCookie, movie) => {
     };
 
     try {
-        console.log("@pullComments");
+        console.log("@pullComments ", movie);
         const response = await axios({
             url: localURL + "comments/pullcomments",
             method: "POST",
