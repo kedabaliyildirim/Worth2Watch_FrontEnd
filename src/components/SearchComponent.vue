@@ -1,5 +1,5 @@
 <template>
-  <div class="searchDiv">
+  <div class="searchDiv" ref="searchDiv">
     <div class="searchBox">
       <input class="searchInput" type="text" v-model="searchTerm" placeholder="search movie " />
     </div>
@@ -17,7 +17,6 @@
               {{ movie.movieName }}
             </h4>
           </div>
-          
         </RouterLink>
       </div>
     </div>
@@ -33,6 +32,17 @@ export default {
       debouncedSearchInit: debounce(this.searchInit, 1000) // Debounce the searchInit method
     }
   },
+  mounted() {
+    // Add event listeners when the component is mounted
+    document.addEventListener('click', this.handleClickOutside)
+    document.addEventListener('keydown', this.handleKeyPress)
+  },
+
+  beforeUnmount() {
+    // Remove event listeners when the component is about to be destroyed
+    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener('keydown', this.handleKeyPress)
+  },
   methods: {
     searchInit() {
       this.$store.dispatch('searchMovie', this.searchTerm)
@@ -40,6 +50,19 @@ export default {
     emptyState() {
       this.searchTerm = ''
       this.$store.dispatch('emptySearchResults')
+    },
+    handleClickOutside(event) {
+      // Check if the clicked element is outside the search div
+      if (this.$refs.searchDiv && !this.$refs.searchDiv.contains(event.target)) {
+        this.emptyState()
+      }
+    },
+
+    handleKeyPress(event) {
+      // Check if the "Esc" key is pressed
+      if (event.key === 'Escape') {
+        this.emptyState()
+      }
     }
   },
   watch: {

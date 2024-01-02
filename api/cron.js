@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-const axios = require('axios')
+const axios = require('axios');
 
 // jshint ignore:start
 let url;
@@ -29,6 +29,9 @@ const pullComments = async (authCookie, movie) => {
         });
 
         console.log("Comments pulled");
+        if (response.data.error) {
+            console.log("Error in pulling comments: ", response.data.error);
+        }
     } catch (error) {
         console.error('Error in pullComments request:', error);
     }
@@ -59,7 +62,7 @@ const requestMovieNames = async (authCookie) => {
 const cron_main = async () => {
     try {
         console.log("Cron job started");
-        console.log(localURL)
+        console.log(localURL);
         const movieNames = await requestMovieNames(authKey);
         setTimeout(async () => {
             for (const movie of movieNames) {
