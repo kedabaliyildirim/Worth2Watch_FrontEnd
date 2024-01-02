@@ -49,7 +49,9 @@
               </div>
             </div>
 
-            <p v-else style="margin-top: 4%">No providers available</p>
+            <p v-else style="margin-top: 4%">
+              <img style="width: 13%; height: 13%" src="@/assets/icons/unofficial.png" alt="My Icon" />
+            </p>
           </div>
           <div class="cover">
             <img
