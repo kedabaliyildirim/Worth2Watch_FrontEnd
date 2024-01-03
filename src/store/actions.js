@@ -116,7 +116,6 @@ export default {
     async setMovie(context, payload) {
         // if logged in add auth token from cookies and make a request to server with
         // payload to pull movie to database 
-
         await axios({
             url: localURL + "movies/getmovie",
             method: "POST",
@@ -133,10 +132,6 @@ export default {
         });
     },
 
-    emptySearchResults(context) {
-        console.log("emptying search results");
-        context.commit('emptySearchResults');
-    },
 
     async getDatabase(context, payload) {
         let authCookie = null;
@@ -172,16 +167,20 @@ export default {
         }
     },
 
-    removeDatabase(context) {
+    removeDatabase(context, payload) {
         let authCookie = null;
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${'authToken'}=`);
         if (parts.length === 2) {
             authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie,
+                databaseName: payload
+            }
             axios({
                 url: localURL + "mod/dropdatabase",
                 method: "POST",
-                data: authCookie,
+                data: data,
                 withCredentials: true,
                 headers: {
                     'X-CSRFToken': context.state.csrfToken,
@@ -395,19 +394,19 @@ export default {
     },
 
     getTopTen(context) {
-        axios({
-            url: localURL + "movies/topten",
-            method: "GET",
-            withCredentials: true,
-            headers: {
-                'X-CSRFToken': context.state.csrfToken,
-                'Content-Type': 'application/json', // Add this line
-            }
-        }).then((response) => {
-            context.commit('setTopTenMovies', response.data);
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+        // axios({
+        //     url: localURL + "movies/topten",
+        //     method: "GET",
+        //     withCredentials: true,
+        //     headers: {
+        //         'X-CSRFToken': context.state.csrfToken,
+        //         'Content-Type': 'application/json', // Add this line
+        //     }
+        // }).then((response) => {
+        //     context.commit('setTopTenMovies', response.data);
+        // }).catch((error) => {
+        //     console.error('Error in login request:', error);
+        // });
     },
     pullComments(context, payload) {
         let authCookie = null;

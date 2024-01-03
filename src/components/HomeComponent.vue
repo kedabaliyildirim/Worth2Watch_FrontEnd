@@ -1,5 +1,5 @@
 <template>
-  <recomandationComponent v-if="currentPage < 2" />
+  <!-- <recomandationComponent v-if="currentPage < 2" /> -->
 
   <div class="mainBox">
     <!-- sort start -->
@@ -18,7 +18,7 @@
     </div>
     <!-- sort finish -->
     <div class="row" v-for="(movie, index) in movieStrings" :key="index">
-      <router-link :to="{ name: 'movie', params: { id: movie.movie_id } }">
+      <router-link :to="{ name: 'movie', params: { id: movie.movieName } }">
         <!-- poster start -->
 
         <div class="book">
@@ -84,6 +84,7 @@
 import recomandationComponent from './RecomandationComponent.vue'
 export default {
   components: {
+    // eslint-disable-next-line vue/no-unused-components
     recomandationComponent
   },
   data() {

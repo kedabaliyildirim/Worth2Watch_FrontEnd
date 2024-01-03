@@ -5,7 +5,7 @@
     </div>
 
     <div v-if="searchResults.length > 0" class="searchResults">
-      <div class="searchItem" v-for="movie in searchResults" :key="movie._id" @click="emptyState">
+      <div class="searchItem" v-for="movie in searchResults" :key="movie._id" >
         <RouterLink class="searchLinks" :to="{ name: 'movie', params: { id: movie.movie_id } }">
           <div class="mainSearchContent">
             <img
@@ -49,7 +49,6 @@ export default {
     },
     emptyState() {
       this.searchTerm = ''
-      this.$store.dispatch('emptySearchResults')
     },
     handleClickOutside(event) {
       // Check if the clicked element is outside the search div
@@ -90,8 +89,6 @@ export default {
 
         // Get the first two letters of each genre and concatenate them
         const abbreviatedGenres = genresArray.map((genre) => genre.substring(0, 2)).join(' ')
-        console.log(abbreviatedGenres) // AC
-        console.log(movieGenres[0])
         return {
           movieName: JSON.parse(movie).movieName,
           movieReleaseDate: JSON.parse(movie).movieReleaseDate,

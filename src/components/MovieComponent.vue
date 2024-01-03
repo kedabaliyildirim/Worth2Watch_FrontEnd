@@ -17,7 +17,14 @@
       <!-- detail -->
       <div class="detailsContainer-2">
         <!-- nereden izleyebilirsiniz? -->
-        Bu kısım nereden izleyebileceğinizi göstermeli, yani logolar olmalı
+        <div v-for="provider in movieObj.movieProviders" :key="provider.provider_id" class="provider">
+          <img
+            :src="getProviderLogoPath('https://image.tmdb.org/t/p/original' + provider.logo_path)"
+            style="max-width: 22px"
+            alt="Provider Logo"
+            class="providerLogo"
+          />
+        </div>
 
         <div class="description-4">
           <p class="movieGenre">{{ movieObj.movieGenre }}</p>
@@ -122,6 +129,9 @@
 export default {
   props: ['movieObj'],
   methods: {
+    getProviderLogoPath(logoPath) {
+      return `https://image.tmdb.org/t/p/original${logoPath}`
+    },
     toggleFAQ1() {
       var answers = document.getElementsByClassName('faq-answer')
       for (var i = 0; i < answers.length; i++) {

@@ -3,15 +3,15 @@
     <div class="login-box">
       <form>
         <div class="user-box">
-          <input type="text" name="" required="" />
+          <input v-model="email" type="text" name="" required="" />
           <label>Username</label>
         </div>
         <div class="user-box">
-          <input type="password" name="" required="" />
+          <input v-model="password" type="password" name="" required="" />
           <label>Password</label>
         </div>
-        <center>
-          <a href="#">
+        <center @click="login">
+          <a >
             SEND
             <span></span>
           </a>
@@ -65,8 +65,6 @@ export default {
 </script>
 
 <style>
-
-
 .login-box {
   position: absolute;
   top: 50%;
@@ -76,7 +74,7 @@ export default {
   transform: translate(-50%, -50%);
   background: rgba(24, 20, 20, 0.987);
   box-sizing: border-box;
-  box-shadow: 0 15px 25px rgba(0,0,0,.6);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.6);
   border-radius: 10px;
 }
 
@@ -104,7 +102,7 @@ export default {
   font-size: 16px;
   color: #fff;
   pointer-events: none;
-  transition: .5s;
+  transition: 0.5s;
 }
 
 .login-box .user-box input:focus ~ label,
@@ -124,19 +122,20 @@ export default {
   text-decoration: none;
   text-transform: uppercase;
   overflow: hidden;
-  transition: .5s;
+  transition: 0.5s;
   margin-top: 40px;
-  letter-spacing: 4px
+  letter-spacing: 4px;
 }
 
 .login-box a:hover {
   background: #03f40f;
   color: #fff;
   border-radius: 5px;
-  box-shadow: 0 0 5px #03f40f,
-              0 0 25px #03f40f,
-              0 0 50px #03f40f,
-              0 0 100px #03f40f;
+  box-shadow:
+    0 0 5px #03f40f,
+    0 0 25px #03f40f,
+    0 0 50px #03f40f,
+    0 0 100px #03f40f;
 }
 
 .login-box a span {
@@ -149,7 +148,8 @@ export default {
     left: -100%;
   }
 
-  50%,100% {
+  50%,
+  100% {
     left: 100%;
   }
 }

@@ -44,40 +44,8 @@
     <!-- Pull Movies Form -->
     <form class="pullMoviesForm" @submit.prevent>
       <h3>Pull Movies</h3>
-      <label>Select information to pull:</label>
-      <div disabled>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.name" />
-          Movie Name
-        </label>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.description" />
-          Movie Description
-        </label>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.releaseDate" />
-          Release Date
-        </label>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.rating" />
-          Movie Rating
-        </label>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.providers" />
-          Movie Providers
-        </label>
-        <label>
-          <input type="checkbox" v-model="movieInfoToPull.directors" />
-          Movie Directors
-        </label>
-      </div>
-      <label for="PageNoToPulled">start yaer</label>
-      <input class="PageNoToPulled" type="number" v-model="startYear" />
-      <label for="PageNoToPulled">end year</label>
-      <input class="PageNoToPulled" type="number" v-model="endYear" />
       <button @click="pullMovies">Pull Movies</button>
     </form>
-    <button @click="testPopDb" class="logoutButton">Force pull top 10 movies</button>
     <!-- Admin Deletion Form -->
     <div class="dangerZone">
       <h3>Danger Zone</h3>
@@ -85,8 +53,13 @@
         <button type="submit">Remove All Comments</button>
       </form>
       <form @submit.prevent>
-        <button @click="removeAllMovies">Remove All Movies</button>
+        <button @click="removeDb('content')">Remove All Movies</button>
       </form>
+      <form @submit.prevent>
+        <button @click="removeDb('popular_movies')">Remove All Popular_movies</button>
+        <button @click="testPopDb" class="logoutButton">pull Popular_movies</button>
+      </form>
+
       <form @submit.prevent="removeMovieById">
         <label for="movieIdToRemove">Remove Movie by ID:</label>
         <input type="text" v-bind="movieIdToRemove" required />
@@ -137,7 +110,7 @@ export default {
         for (const movie of movieNames) {
           const movieData = {
             movie: {
-              movieName: movie.movieName,
+              movieName: movie.movieName
             },
             platform: {
               youtube: this.platformsToPull.youtube,
@@ -184,9 +157,9 @@ export default {
       // TODO: Implement remove all comments functionality
       console.log('Remove All Comments functionality')
     },
-    removeAllMovies() {
-      this.$store.dispatch('removeDatabase')
-      console.log('Remove All Movies functionality')
+    removeDb(dbName) {
+      this.$store.dispatch('removeDatabase', dbName)
+      console.log('Remove All ' + dbName + ' functionality')
     },
     removeMovieById() {
       // TODO: Implement remove movie by ID functionality
