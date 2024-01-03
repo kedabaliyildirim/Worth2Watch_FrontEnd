@@ -31,5 +31,8 @@ export default {
     },
     getMovieNames(state) {
         return state.movieNames;
+    },
+    getEmptyList(state) {
+        return state.emptyList;
     }
 };

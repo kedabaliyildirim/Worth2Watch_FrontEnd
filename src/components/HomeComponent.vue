@@ -1,5 +1,5 @@
 <template>
-  <!-- <recomandationComponent v-if="currentPage < 2" /> -->
+  <recomandationComponent v-if="currentPage < 2" />
 
   <div class="mainBox">
     <!-- sort start -->

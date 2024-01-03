@@ -3,7 +3,7 @@
   <h2 id="headline">Top 10 Movies</h2>
   <div class="mainBox">
     <div class="row-2" v-for="(movie, index) in movieStrings" :key="index">
-      <router-link :to="{ name: 'movie', params: { id: movie.movie_id } }">
+      <router-link :to="{ name: 'movie', params: { id: movie.movieName } }">
         <!-- card -->
         <div class="card">
           <div class="content">

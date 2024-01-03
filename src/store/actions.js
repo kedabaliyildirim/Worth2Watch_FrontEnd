@@ -11,8 +11,8 @@ url =
     import.meta.env.VITE_API_URL
 // jshint ignore:end
 
-const localURL = url;
-// const localURL = 'http://127.0.0.1:8000/';
+// const localURL = url;
+const localURL = 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
@@ -394,19 +394,19 @@ export default {
     },
 
     getTopTen(context) {
-        // axios({
-        //     url: localURL + "movies/topten",
-        //     method: "GET",
-        //     withCredentials: true,
-        //     headers: {
-        //         'X-CSRFToken': context.state.csrfToken,
-        //         'Content-Type': 'application/json', // Add this line
-        //     }
-        // }).then((response) => {
-        //     context.commit('setTopTenMovies', response.data);
-        // }).catch((error) => {
-        //     console.error('Error in login request:', error);
-        // });
+        axios({
+            url: localURL + "movies/topten",
+            method: "GET",
+            withCredentials: true,
+            headers: {
+                'X-CSRFToken': context.state.csrfToken,
+                'Content-Type': 'application/json', // Add this line
+            }
+        }).then((response) => {
+            context.commit('setTopTenMovies', response.data);
+        }).catch((error) => {
+            console.error('Error in login request:', error);
+        });
     },
     pullComments(context, payload) {
         let authCookie = null;
@@ -493,6 +493,62 @@ export default {
                 }
             }).then((response) => {
                 console.log(response.data);
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        } else {
+            alert("You are not logged in");
+        }
+    },
+    checkEmptyComments(context) { 
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie
+            };
+            axios({
+                url: localURL + "mod/checkemptycomments",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json', // Add this line
+                }
+            }).then((response) => {
+                context.commit('setEmptyList', response.data);
+
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        } else {
+            alert("You are not logged in");
+        }
+    },
+    
+    emptyYoutubeComments(context) { 
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie
+            };
+            axios({
+                url: localURL + "mod/emptyyoutubecomments",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json', // Add this line
+                }
+            }).then((response) => {
+                console.log(response);
             }).catch((error) => {
                 console.error('Error in login request:', error);
             });

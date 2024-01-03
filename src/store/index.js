@@ -19,6 +19,7 @@ const store = createStore({
         adminList: [],
         topTenMovies: [],
         movieNames: [],
+        emptyList: []
     },
     actions,
     mutations,

@@ -37,5 +37,8 @@ export default {
     },
     setMovieNames(state, movieNames) {
         state.movieNames = movieNames;
+    },
+    setEmptyList(state, emptyList) {
+        state.emptyList = emptyList
     }
 };

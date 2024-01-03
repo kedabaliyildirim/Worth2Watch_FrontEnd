@@ -13,10 +13,16 @@ export default {
   computed: {
     currentMovie() {
       const movieObj = this.$store.getters.getCurrentMovie
-
       const movieProvider = JSON.parse(movieObj).movieProvider.US
-      const filteredProviders = movieProvider.filter(provider => provider.provider_name !== "YouTube");
-      console.log(filteredProviders);
+      let comments = []
+      if (JSON.parse(movieObj).Comments) {
+        comments = JSON.parse(movieObj).Comments
+      } else {
+        comments = {
+          youtubeComments: [],
+          redditComments: []
+        }
+      }
       return {
         movieName: JSON.parse(movieObj).movieName,
         movieReleaseDate: JSON.parse(movieObj).movieReleaseDate,
@@ -28,8 +34,8 @@ export default {
         movieScore: JSON.parse(movieObj).movieScore,
         movieActors: JSON.parse(movieObj).movieActors,
         description: JSON.parse(movieObj).movieDescription,
-        movieComments: JSON.parse(movieObj).Comments,
-        movieProviders: filteredProviders
+        movieComments: comments,
+        movieProviders: movieProvider
       }
     }
     // For demo purposes, using Lorem Ipsum for comments

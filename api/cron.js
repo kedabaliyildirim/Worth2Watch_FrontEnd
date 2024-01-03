@@ -36,7 +36,6 @@ const pullComments = async (authCookie, movie) => {
         console.error('Error in pullComments request:', error);
     }
 };
-
 const requestMovieNames = async (authCookie) => {
     const data = {
         authToken: authCookie
@@ -45,7 +44,7 @@ const requestMovieNames = async (authCookie) => {
     try {
         console.log("@requestMovieNames");
         const response = await axios({
-            url: localURL + "comments/getmovienames",
+            url: localURL + "mod/emptyyoutubecomments",
             method: "POST",
             data: data,
             withCredentials: true,
@@ -58,7 +57,6 @@ const requestMovieNames = async (authCookie) => {
         throw error; // Rethrow the error to handle it in the calling function
     }
 };
-
 const cron_main = async () => {
     try {
         console.log("Cron job started");

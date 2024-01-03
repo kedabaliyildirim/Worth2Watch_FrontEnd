@@ -108,16 +108,19 @@ export default {
         return
       } else {
         for (const movie of movieNames) {
-          const movieData = {
-            movie: {
-              movieName: movie.movieName
-            },
-            platform: {
-              youtube: this.platformsToPull.youtube,
-              reddit: this.platformsToPull.reddit
+          setTimeout(async () => {
+            const movieData = {
+              movie: {
+                movieName: movie.movieName
+              },
+              platform: {
+                youtube: this.platformsToPull.youtube,
+                reddit: this.platformsToPull.reddit
+              }
             }
-          }
-          this.$store.dispatch('pullComments', movieData)
+            await this.$store.dispatch('pullComments', movieData)
+          }, 2000)
+
         }
       }
     },
