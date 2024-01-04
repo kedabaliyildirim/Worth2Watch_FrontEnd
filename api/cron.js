@@ -64,12 +64,14 @@ const cron_main = async () => {
         console.log("Cron job started");
         console.log(localURL);
         const movieNames = await requestMovieNames(authKey);
-        setTimeout(async () => {
+        
             for (const movie of movieNames) {
+                setTimeout(async () => {
                 console.log(`Processing movie: ${movie}`);
                 await pullComments(authKey, movie);
+                    }, 2000);
             }
-        }, 2000);
+        
 
         console.log("Cron job completed successfully");
     } catch (error) {
