@@ -6,7 +6,7 @@
 
     <div v-if="searchResults.length > 0" class="searchResults">
       <div class="searchItem" v-for="movie in searchResults" :key="movie._id" >
-        <RouterLink class="searchLinks" :to="{ name: 'movie', params: { id: movie.movie_id } }">
+        <RouterLink class="searchLinks" :to="{ name: 'movie', params: { id: movie.movieName } }">
           <div class="mainSearchContent">
             <img
               :src="movie.imageURL"
