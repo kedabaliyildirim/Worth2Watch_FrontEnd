@@ -40,5 +40,8 @@ export default {
     },
     setEmptyList(state, emptyList) {
         state.emptyList = emptyList
+    },
+    emptyState(state) {
+        state.searchResults = [];
     }
 };

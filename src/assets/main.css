@@ -99,7 +99,6 @@ nav a.router-link-exact-active {
   color: var(--color-text);
 }
 
-
 .searchBox {
   position: absolute;
   top: 4%; /* veya istediğiniz bir değer */
@@ -124,10 +123,11 @@ nav a.router-link-exact-active {
   color: #ccc9dc;
 }
 .searchResults {
+  
   display: flex;
   position: absolute;
   flex-direction: column;
-  justify-content: center;
+  margin-left: 30%;
   background-color: transparent;
   color: white;
   width: 20%;
@@ -211,7 +211,8 @@ nav a.router-link-exact-active {
 }
 
 .movieGenre {
-  font-weight: bold;
+  font-size: 14px;
+  padding-left: 10px;
 }
 
 .details {
@@ -297,12 +298,13 @@ nav a.router-link-exact-active {
 }
 
 .detailsContainer-2 {
-  margin-top: 2%;
+  margin-top: 1%;
   float: left;
 }
 
+
 .star {
-  margin-top: 3%;
+  margin-top: 1%;
   float: left;
   margin-left: 15%;
   text-align: center;
@@ -364,8 +366,6 @@ nav a.router-link-exact-active {
 .movieScoreList li {
   margin-bottom: 7px;
 }
-
-
 
 .moviePoster {
   width: 50%;

@@ -219,7 +219,7 @@ export default {
   border-radius: 10px;
 }
 .description-3 {
-  margin-left: 20px;
+  margin-left: 10%;
   width: 80%;
   margin-top: 10px;
   padding: 5px;
@@ -305,7 +305,7 @@ export default {
 
 /* cover child elements */
 .cover .movieGenre {
-  font-weight: bold;
+  
 }
 
 .cover .details {

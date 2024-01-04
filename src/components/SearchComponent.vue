@@ -1,6 +1,6 @@
 <template>
-  <div class="searchDiv" ref="searchDiv">
-    <div class="searchBox">
+  <div class="searchDiv" ref="searchDiv" >
+    <div class="searchBox" >
       <input class="searchInput" type="text" v-model="searchTerm" placeholder="search movie " />
     </div>
 
@@ -29,11 +29,13 @@ export default {
   data() {
     return {
       searchTerm: '',
-      debouncedSearchInit: debounce(this.searchInit, 1000) // Debounce the searchInit method
+      debouncedSearchInit: debounce(this.searchInit, 1000),
+      isVis:true // Debounce the searchInit method
     }
   },
   mounted() {
     // Add event listeners when the component is mounted
+    this.isVis = true
     document.addEventListener('click', this.handleClickOutside)
     document.addEventListener('keydown', this.handleKeyPress)
   },
@@ -61,10 +63,12 @@ export default {
     },
     emptyState() {
       this.searchTerm = ''
+      this.$store.dispatch('emptyState');
     },
     handleClickOutside(event) {
       // Check if the clicked element is outside the search div
       if (this.$refs.searchDiv && !this.$refs.searchDiv.contains(event.target)) {
+        this.isVisited = false
         this.emptyState()
       }
     },
@@ -73,6 +77,7 @@ export default {
       // Check if the "Esc" key is pressed
       if (event.key === 'Escape') {
         this.emptyState()
+        this.isVis = false
       }
     }
   },

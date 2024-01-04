@@ -15,16 +15,18 @@
         />
       </div>
       <!-- detail -->
+
+      <div class="provider-container">
+        <img
+          v-for="provider in movieObj.movieProviders"
+          :key="provider.provider_id"
+          :src="getProviderLogoPath('https://image.tmdb.org/t/p/original' + provider.logo_path)"
+          style="max-width: 25px"
+          alt="Provider Logo"
+        />
+      </div>
       <div class="detailsContainer-2">
         <!-- nereden izleyebilirsiniz? -->
-        <div v-for="provider in movieObj.movieProviders" :key="provider.provider_id" class="provider">
-          <img
-            :src="getProviderLogoPath('https://image.tmdb.org/t/p/original' + provider.logo_path)"
-            style="max-width: 22px"
-            alt="Provider Logo"
-            class="providerLogo"
-          />
-        </div>
 
         <div class="description-4">
           <p class="movieGenre">{{ movieObj.movieGenre }}</p>
@@ -225,5 +227,11 @@ export default {
 .sentiment-analyze {
   color: #ccc9cc;
   margin-right: 20px;
+}
+
+.provider-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 </style>
