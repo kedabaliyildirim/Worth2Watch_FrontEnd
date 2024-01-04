@@ -591,6 +591,38 @@ export default {
         } else {
             alert("You are not logged in");
         }
+    },
+    analyseSentiment(context, payload) {
+            let authCookie = null;
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${'authToken'}=`);
+            if (parts.length === 2) {
+                authCookie = parts.pop().split(';').shift();
+                const data = {
+                    authToken: authCookie,
+                    is_reddit: payload.is_reddit,
+                    is_youtube: payload.is_youtube,
+                    movieNames: payload.movieNames
+                };
+                axios({
+                    url: localURL + "comments/analysesentiment",
+                    method: "POST",
+                    data: data,
+                    withCredentials: true,
+                    headers: {
+                        'X-CSRFToken': context.state.csrfToken,
+                        'Content-Type': 'application/json',
+                    }
+                }).then((response) => {
+                    console.log(response.data);
+                }).catch((error) => {
+                    console.error('Error in login request:', error);
+                });
+            } else {
+                alert("You are not logged in");
+            }
+        
     }
+
 
 };

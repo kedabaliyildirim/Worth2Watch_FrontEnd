@@ -120,7 +120,6 @@ export default {
             }
             await this.$store.dispatch('pullComments', movieData)
           }, 2000)
-
         }
       }
     },
@@ -129,11 +128,24 @@ export default {
         alert('Select at least one platform to pull comments from.')
         return
       } else {
-        const platformData = {
-          youtube: this.platformsToAnalyse.youtube,
-          reddit: this.platformsToAnalyse.reddit
-        }
-        this.$store.dispatch('analyseSentiment', platformData)
+        await this.$store.dispatch('requestMovieNames')
+        const movieNames = this.$store.getters.getMovieNames
+        //const platformData = {
+        //      is_youtube: this.platformsToAnalyse.youtube,
+        //      is_reddit: this.platformsToAnalyse.reddit,
+        //      movieNames: movieNames
+        //    }
+        //    this.$store.dispatch('analyseSentiment', platformData)
+         for (const movie of movieNames) {
+           setTimeout(() => {
+             const platformData = {
+               is_youtube: this.platformsToAnalyse.youtube,
+               is_reddit: this.platformsToAnalyse.reddit,
+               movieNames: movie
+             }
+             this.$store.dispatch('analyseSentiment', platformData)
+           }, 15000)
+         }
       }
     },
 

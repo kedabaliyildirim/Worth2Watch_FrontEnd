@@ -117,6 +117,7 @@
             :key="comment"
           >
             {{ comment.comment }}
+            {{ comment.sentiment }}
           </div>
         </div>
       </div>

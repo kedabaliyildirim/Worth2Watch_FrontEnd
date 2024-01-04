@@ -5,7 +5,7 @@
     </div>
 
     <div v-if="searchResults.length > 0" class="searchResults">
-      <div class="searchItem" v-for="movie in searchResults" :key="movie._id" >
+      <div class="searchItem" v-for="movie in searchResults" :key="movie._id">
         <RouterLink class="searchLinks" :to="{ name: 'movie', params: { id: movie.movieName } }">
           <div class="mainSearchContent">
             <img
@@ -37,11 +37,23 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
     document.addEventListener('keydown', this.handleKeyPress)
   },
-
   beforeUnmount() {
     // Remove event listeners when the component is about to be destroyed
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('keydown', this.handleKeyPress)
+  },
+  handleClickOutside(event) {
+    // Check if the clicked element is outside the search div
+    if (this.$refs.searchDiv && !this.$refs.searchDiv.contains(event.target)) {
+      this.emptyState()
+    }
+  },
+
+  handleKeyPress(event) {
+    // Check if the "Esc" key is pressed
+    if (event.key === 'Escape') {
+      this.emptyState()
+    }
   },
   methods: {
     searchInit() {
