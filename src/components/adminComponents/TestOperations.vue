@@ -82,6 +82,7 @@ export default {
 
     initializeContentDatabaseTest() {
       this.contentDatabaseTestStatus = 'ongoing';
+      this.$store.dispatch('testDb')
       // TODO: Implement content database test logic
       // Set this.contentDatabaseTestStatus to 'passed' or 'failed' accordingly
       console.log('Content Database Test initialized');

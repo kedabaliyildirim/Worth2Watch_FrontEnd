@@ -11,8 +11,8 @@ url =
     import.meta.env.VITE_API_URL
 // jshint ignore:end
 
-const localURL = url;
-// const localURL = 'http://127.0.0.1:8000/';
+//const localURL = url;
+ const localURL = 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
@@ -473,6 +473,42 @@ export default {
             }
         });
     },
+    testDb(context) {
+        return new Promise((resolve, reject) => {
+            let authCookie = null;
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${'authToken'}=`);
+
+            if (parts.length === 2) {
+                authCookie = parts.pop().split(';').shift();
+                const data = {
+                    authToken: authCookie
+                };
+
+                axios({
+                    url: localURL + "mod/testdb",
+                    method: "POST",
+                    data: data,
+                    withCredentials: true,
+                    headers: {
+                        'X-CSRFToken': context.state.csrfToken,
+                        'Content-Type': 'application/json',
+                    }
+                }).then((response) => {
+                    console.log(response.data)
+                    resolve(response.data); // Resolve the promise with the data
+                }).catch((error) => {
+                    console.error('Error in login request:', error);
+                    reject(error); // Reject the promise with the error
+                });
+            } else {
+                alert("You are not logged in");
+                reject("Not logged in"); // Reject the promise with a reason
+            }
+        });
+    },
+
+
     testPopularDb(context) { 
         let authCookie = null;
         const value = `; ${document.cookie}`;
