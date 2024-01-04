@@ -16,7 +16,9 @@ const pullComments = async (authCookie, movie) => {
             "reddit": false,
             "youtube": true,
         },
-        movie: movie
+        movie: {
+            movieName:movie
+        }
     };
 
     try {
