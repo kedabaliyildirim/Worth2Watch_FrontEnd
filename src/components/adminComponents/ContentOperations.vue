@@ -130,22 +130,27 @@ export default {
       } else {
         await this.$store.dispatch('requestMovieNames')
         const movieNames = this.$store.getters.getMovieNames
-        //const platformData = {
-        //      is_youtube: this.platformsToAnalyse.youtube,
-        //      is_reddit: this.platformsToAnalyse.reddit,
-        //      movieNames: movieNames
-        //    }
-        //    this.$store.dispatch('analyseSentiment', platformData)
-         for (const movie of movieNames) {
-           setTimeout(() => {
-             const platformData = {
-               is_youtube: this.platformsToAnalyse.youtube,
-               is_reddit: this.platformsToAnalyse.reddit,
-               movieNames: movie
-             }
-             this.$store.dispatch('analyseSentiment', platformData)
-           }, 15000)
-         }
+
+        let counter = 0
+
+        const intervalId = setInterval(async () => {
+          const movie = movieNames[counter]
+
+          if (movie) {
+            const platformData = {
+              is_youtube: this.platformsToAnalyse.youtube,
+              is_reddit: this.platformsToAnalyse.reddit,
+              movieNames: movie
+            }
+
+            await this.$store.dispatch('analyseSentiment', platformData)
+
+            counter++
+          } else {
+            // If all movies have been processed, clear the interval
+            clearInterval(intervalId)
+          }
+        }, 15000)
       }
     },
 
