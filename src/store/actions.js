@@ -622,6 +622,9 @@ export default {
                 alert("You are not logged in");
             }
         
+    },
+    emptyState(context) {
+        context.commit('emptyState')
     }
 
 
