@@ -2,6 +2,7 @@
 
 <template>
   <div id="app">
+    <LoadingIcon v-if="loading" />
     <header>
       <div class="wrapper">
         <div>
@@ -24,17 +25,32 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import { RouterLink, RouterView } from 'vue-router'
-import searchComponent from '@/components/SearchComponent.vue'
+import SearchComponent from '@/components/SearchComponent.vue'
+import LoadingIcon from '@/components/LoadingIcon.vue' // Import the loading icon component
+
 
 export default {
   components: {
-    searchComponent
+    SearchComponent,
+    LoadingIcon,
+    RouterLink,
+    RouterView
+
   },
   data() {
     return {
-      searchTerm: ''
+      searchTerm: '',
+      loading: true // Add a variable to control loading icon visibility
+
     }
+    
   },
+  mounted() {
+    setTimeout(() => {
+      this.loading = false;
+    }, 3000);
+  },
+
   created() {
     // 1. Dispatch action to get movie data
 
@@ -73,7 +89,10 @@ export default {
   },
   methods: {
     searchInit() {
+      
       this.$store.dispatch('searchMovie', this.searchTerm)
+      
+      
     }
   },
   watch: {

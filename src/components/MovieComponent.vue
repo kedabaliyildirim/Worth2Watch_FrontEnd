@@ -1,6 +1,10 @@
 <template>
+  
+  
   <div class="MoviePageMain">
+    
     <div class="Headline">
+      
       <p class="movieTitle">{{ movieObj.movieName }}</p>
       <p class="movieDuration">{{ movieObj.movieDuration }}</p>
     </div>
@@ -140,8 +144,27 @@
 </template>
 
 <script>
+
 export default {
+
+  data() {
+    return {
+      loading: true, // Introduce loading state
+    };
+  },
+
+  mounted() {
+    // Simulate loading for 3 seconds
+    setTimeout(() => {
+      this.loading = false; // Set loading to false after 3 seconds
+    }, 3000);
+  },
+    
   props: ['movieObj'],
+  
+
+  
+
   methods: {
     getProviderLogoPath(logoPath) {
       return `https://image.tmdb.org/t/p/original${logoPath}`
