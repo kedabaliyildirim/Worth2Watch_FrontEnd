@@ -53,7 +53,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #0c0d28; /* Change to your desired background color */
+    background-color: #0c1821;
+    /* background-color: #0c0d28;  */
     opacity: 1; /* Adjust the opacity as needed */
     z-index: 998; /* Lower z-index to place behind the loader */
   }

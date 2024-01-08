@@ -28,27 +28,23 @@ import { RouterLink, RouterView } from 'vue-router'
 import SearchComponent from '@/components/SearchComponent.vue'
 import LoadingIcon from '@/components/LoadingIcon.vue' // Import the loading icon component
 
-
 export default {
   components: {
     SearchComponent,
     LoadingIcon,
     RouterLink,
     RouterView
-
   },
   data() {
     return {
       searchTerm: '',
       loading: true // Add a variable to control loading icon visibility
-
     }
-    
   },
   mounted() {
     setTimeout(() => {
-      this.loading = false;
-    }, 3000);
+      this.loading = false
+    }, 2000)
   },
 
   created() {
@@ -89,10 +85,7 @@ export default {
   },
   methods: {
     searchInit() {
-      
       this.$store.dispatch('searchMovie', this.searchTerm)
-      
-      
     }
   },
   watch: {
@@ -130,6 +123,25 @@ export default {
 </script>
 
 <style>
+.routerview {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  align-content: center;
+  align-items: center;
+}
+.mainLinks {
+  margin-left: 15%;
+  font-size: 13px;
+}
+.mainLinks:visited {
+  color: #ccc9dc;
+}
+.mainLinks:active,
+.mainLinks:focus {
+  color: green;
+}
 .wrapper {
   display: flex;
   align-content: center;
@@ -149,8 +161,9 @@ header {
   justify-content: center;
   align-items: center;
 }
-nav a.router-link-exact-active {
-  color: var(--color-text);
+
+.mainLinks.router-link-exact-active {
+  color: green;
 }
 /* Add other styles as needed */
 /* Rest of your existing styles... */

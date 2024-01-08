@@ -56,7 +56,7 @@ export default {
     // Simulate loading for 3 seconds
     setTimeout(() => {
       this.loading = false; // Set loading to false after 3 seconds
-    }, 3000);
+    }, 2000);
   },
 }
 </script>

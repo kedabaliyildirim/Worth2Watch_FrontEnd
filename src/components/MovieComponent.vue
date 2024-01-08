@@ -16,6 +16,8 @@
       </div>
       <!-- detail -->
 
+      <div class="detailsContainer-2">
+        
       <div class="provider-container">
         <img
           v-for="provider in movieObj.movieProviders"
@@ -25,8 +27,7 @@
           alt="Provider Logo"
         />
       </div>
-      <div class="detailsContainer-2">
-        <!-- nereden izleyebilirsiniz? -->
+      
 
         <div class="description-4">
           <p class="movieGenre">{{ movieObj.movieGenre }}</p>
