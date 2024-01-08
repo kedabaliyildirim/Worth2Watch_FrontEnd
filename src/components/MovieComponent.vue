@@ -1,10 +1,6 @@
 <template>
-  
-  
   <div class="MoviePageMain">
-    
     <div class="Headline">
-      
       <p class="movieTitle">{{ movieObj.movieName }}</p>
       <p class="movieDuration">{{ movieObj.movieDuration }}</p>
     </div>
@@ -97,17 +93,18 @@
               />
               <span> Reddit Comments</span>
             </div>
-
             <p class="sentiment-analyze" ref="redditSentiment"></p>
           </div>
           <!-- Updated loop to create faq-answer-2 only if sentiment is present -->
-          <template v-for="(comment, index) in movieObj.movieComments.redditComments" :key="index">
-            <template v-if="comment.sentiment !== undefined">
-              <div class="faq-answer-2">
-                {{ comment.comment }}
-                <div class="left-aligned">{{ comment.sentiment }}</div>
-              </div>
-            </template>
+          <template v-if="showRedditComments">
+            <div v-for="(comment, index) in movieObj.movieComments.redditComments" :key="index">
+              <template v-if="comment.sentiment !== undefined">
+                <div class="faq-answer-2">
+                  {{ comment.comment }}
+                  <div class="left-aligned">{{ comment.sentiment }}</div>
+                </div>
+              </template>
+            </div>
           </template>
         </div>
       </div>
@@ -144,92 +141,40 @@
 </template>
 
 <script>
-
 export default {
-
+  props: ['movieObj'],
   data() {
     return {
-      loading: true, // Introduce loading state
-    };
+      showRedditComments: true
+    }
   },
-
   mounted() {
-    // Simulate loading for 3 seconds
-    setTimeout(() => {
-      this.loading = false; // Set loading to false after 3 seconds
-    }, 3000);
+    // Comment sentimenterini toplamak ve ortalama hesaplamak için
+    const sentimentList = this.movieObj.movieComments.redditComments
+      .filter((comment) => comment.sentiment !== undefined) // Filter out comments without sentiment
+      .map((comment) => comment.sentiment)
+
+    const totalSentiments = sentimentList.length
+    const sumOfSentiments = sentimentList.reduce((sum, sentiment) => sum + parseFloat(sentiment), 0)
+
+    // Check if there are comments with sentiment to avoid division by zero
+    const averageSentiment = totalSentiments > 0 ? sumOfSentiments / totalSentiments : 0
+
+    this.$refs.redditSentiment.innerHTML = `<span style="color: #ccc9dc; border: 1px solid #8ea7e9; font-weight:bold; border-radius: 50%; padding: 7px">${averageSentiment.toFixed(
+      2
+    )}</span>`
   },
-    
-  props: ['movieObj'],
-  
-
-  
-
   methods: {
     getProviderLogoPath(logoPath) {
       return `https://image.tmdb.org/t/p/original${logoPath}`
-    },
-
-    // toggleFAQ1() {
-    //   var answers = document.getElementsByClassName('faq-answer')
-    //   for (var i = 0; i < answers.length; i++) {
-    //     if (answers[i].style.display === 'none') {
-    //       answers[i].style.display = 'block'
-    //     } else {
-    //       answers[i].style.display = 'none'
-    //     }
-    //   }
-
-    //   // Comment sentimenterini toplamak ve ortalama hesaplamak için
-    //   const sentimentList = this.movieObj.movieComments.youtubeComments
-    //     .filter((comment) => comment.sentiment !== undefined) // Filter out comments without sentiment
-    //     .map((comment) => comment.sentiment)
-
-    //   const totalSentiments = sentimentList.length
-    //   const sumOfSentiments = sentimentList.reduce(
-    //     (sum, sentiment) => sum + parseFloat(sentiment),
-    //     0
-    //   )
-
-    //   // Check if there are comments with sentiment to avoid division by zero
-    //   const averageSentiment = totalSentiments > 0 ? sumOfSentiments / totalSentiments : 0
-
-    //   this.$refs.youtubeSentiment.innerHTML = `<span style="color: #ccc9dc; border: 1px solid #8ea7e9; font-weight:bold; border-radius: 50%; padding: 7px">${averageSentiment.toFixed(
-    //     2
-    //   )}</span>`
-    // },
-    toggleFAQ2() {
-      var answers = document.getElementsByClassName('faq-answer-2')
-      for (var i = 0; i < answers.length; i++) {
-        if (answers[i].style.display === 'none') {
-          answers[i].style.display = 'block'
-        } else {
-          answers[i].style.display = 'none'
-        }
-      }
-
-      // Comment sentimenterini toplamak ve ortalama hesaplamak için
-      const sentimentList = this.movieObj.movieComments.redditComments
-        .filter((comment) => comment.sentiment !== undefined) // Filter out comments without sentiment
-        .map((comment) => comment.sentiment)
-
-      const totalSentiments = sentimentList.length
-      const sumOfSentiments = sentimentList.reduce(
-        (sum, sentiment) => sum + parseFloat(sentiment),
-        0
-      )
-
-      // Check if there are comments with sentiment to avoid division by zero
-      const averageSentiment = totalSentiments > 0 ? sumOfSentiments / totalSentiments : 0
-
-      this.$refs.redditSentiment.innerHTML = `<span style="color: #ccc9dc; border: 1px solid #8ea7e9; font-weight:bold; border-radius: 50%; padding: 7px">${averageSentiment.toFixed(
-        2
-      )}</span>`
     },
     formatDate(value) {
       const options = { day: 'numeric', month: 'short', year: 'numeric' }
       const date = new Date(value)
       return date.toLocaleDateString('en-GB', options)
+    },
+    toggleFAQ2() {
+      this.showRedditComments = !this.showRedditComments
     }
   }
 }
@@ -306,6 +251,7 @@ export default {
   color: #d1b47a;
   font-weight: bold;
 }
+
 .sentiment-analyze {
   color: #ccc9cc;
   margin-right: 20px;
