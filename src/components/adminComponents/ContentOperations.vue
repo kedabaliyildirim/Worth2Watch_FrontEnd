@@ -5,10 +5,6 @@
   </div>
 
   <div class="adminContentBody">
-    <!-- Register Admin Form -->
-    <!-- ... (previous code) ... -->
-
-    <!-- Pull Comments Form -->
     <form class="pullCommentsForm" @submit.prevent>
       <h3>Pull Comments</h3>
       <label>Select platforms:</label>
@@ -58,12 +54,6 @@
       <form @submit.prevent>
         <button @click="removeDb('popular_movies')">Remove All Popular_movies</button>
         <button @click="testPopDb" class="logoutButton">pull Popular_movies</button>
-      </form>
-
-      <form @submit.prevent="removeMovieById">
-        <label for="movieIdToRemove">Remove Movie by ID:</label>
-        <input type="text" v-bind="movieIdToRemove" required />
-        <button type="submit">Remove Movie</button>
       </form>
     </div>
   </div>
@@ -176,16 +166,10 @@ export default {
     removeAllComments() {
       // TODO: Implement remove all comments functionality
       this.$store.dispatch('removeAllComments')
-      console.log('Remove All Comments functionality')
     },
     removeDb(dbName) {
       this.$store.dispatch('removeDatabase', dbName)
-      console.log('Remove All ' + dbName + ' functionality')
     },
-    removeMovieById() {
-      // TODO: Implement remove movie by ID functionality
-      console.log('Remove Movie by ID functionality', this.movieIdToRemove)
-    }
   }
 }
 </script>

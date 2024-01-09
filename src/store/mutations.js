@@ -30,7 +30,7 @@ export default {
         state.trailers = trailers;
     },
     setAdminList(state, adminList) {
-        state.admins = adminList;
+        state.adminList = adminList;
     },
     setTopTenMovies(state, topTenMovies) {
         state.topTenMovies = topTenMovies;
@@ -43,5 +43,8 @@ export default {
     },
     emptyState(state) {
         state.searchResults = [];
+    },
+    setTestResults(state, testResults) {
+        state.testResults = testResults;
     }
 };

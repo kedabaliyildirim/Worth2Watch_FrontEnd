@@ -34,5 +34,8 @@ export default {
     },
     getEmptyList(state) {
         return state.emptyList;
+    },
+    getTestResults(state) {
+        return state.testResults;
     }
 };

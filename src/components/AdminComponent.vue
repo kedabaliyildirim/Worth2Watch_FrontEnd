@@ -6,7 +6,6 @@
         <li @click="changeContent('admin')">Admin Operations</li>
         <li @click="changeContent('content')">Content Operations</li>
         <li @click="changeContent('tests')">Test Operations</li>
-        <li @click="changeContent('project')">Project Options</li>
       </ul>
     </div>
 

@@ -24,17 +24,16 @@
     </form>
     <div>
       <button @click="createCSV" class="logoutButton">Create CSV</button>
-
     </div>
 
     <!-- Admin Deletion Form -->
     <div class="dangerZone">
       <h3>Danger Zone</h3>
-      <form>
+      <form @submit.prevent>
         <label for="adminToDelete">Select Admin to Delete:</label>
-        <select v-model="adminToDelete" required>
-          <option v-for="admin in adminList" :key="admin.id" :value="admin.id">
-            {{ admin.email }}
+        <select  v-model="adminToDelete" required>
+          <option v-for="admin in adminList" :key="admin">
+            {{ admin }} 
           </option>
         </select>
         <button @click="deleteAdmin" type="submit">Delete Admin</button>
@@ -52,9 +51,12 @@ export default {
       changePasswordId: '',
       changePw: '',
       username: '',
-        // Add more admins as needed
-      
+      adminToDelete: '',
+      // Add more admins as needed
     }
+  },
+  mounted() {
+    this.$store.dispatch('getAdminList')
   },
   methods: {
     registerAdmin() {
@@ -70,19 +72,19 @@ export default {
       })
     },
     logout() {
-      // TODO: Implement logout functionality
-      console.log('Logout functionality')
+      this.$store.dispatch('logout')
     },
     deleteAdmin() {
-      this.$store.dispatch('deleteAdmin', this.username)
+      console.log("deleteAdmin" + this.adminToDelete);
+      this.$store.dispatch('deleteAdmin', this.adminToDelete)
     },
     createCSV() {
       this.$store.dispatch('createCSV')
     },
-   
   },
   computed: {
     adminList() {
+
       return this.$store.getters.getAdminList
     }
   }

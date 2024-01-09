@@ -19,7 +19,8 @@ const store = createStore({
         adminList: [],
         topTenMovies: [],
         movieNames: [],
-        emptyList: []
+        emptyList: [],
+        testResults: []
     },
     actions,
     mutations,

@@ -95,6 +95,34 @@ export default {
             console.error('Error in login request:', error);
         });
     },
+    async logout(context) {
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie
+            };
+            await axios({
+                url: localURL + "mod/logout",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json', // Add this line
+                }
+            }).then((response) => {
+                context.commit('setLoginState', false);
+                context.commit('setAuthToken', null);
+                document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        }
+    },
     //Searches for a movie by name and returns the movie object to set as the current movie
     async searchMovie(context, payload) {
         await axios({
@@ -451,7 +479,6 @@ export default {
                 const data = {
                     authToken: authCookie
                 };
-                console.log("@requestMovieNames");
                 axios({
                     url: localURL + "comments/getmovienames",
                     method: "POST",
@@ -496,7 +523,7 @@ export default {
                         'Content-Type': 'application/json',
                     }
                 }).then((response) => {
-                    console.log(response.data)
+                    context.commit('setTestResults', response.data)
                     resolve(response.data); // Resolve the promise with the data
                 }).catch((error) => {
                     console.error('Error in login request:', error);
@@ -565,7 +592,9 @@ export default {
             alert("You are not logged in");
         }
     },
-
+    emptyState(context) {
+        context.commit('emptyState');
+    },
     emptyYoutubeComments(context) {
         let authCookie = null;
         const value = `; ${document.cookie}`;
@@ -644,6 +673,34 @@ export default {
                     'Content-Type': 'application/json',
                 }
             }).then((response) => {
+                console.log(response.data);
+            }).catch((error) => {
+                console.error('Error in login request:', error);
+            });
+        } else {
+            alert("You are not logged in");
+        }
+    },
+    getAdminList(context) {
+        let authCookie = null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${'authToken'}=`);
+        if (parts.length === 2) {
+            authCookie = parts.pop().split(';').shift();
+            const data = {
+                authToken: authCookie
+            };
+            axios({
+                url: localURL + "mod/adminlist",
+                method: "POST",
+                data: data,
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            }).then((response) => {
+                context.commit('setAdminList', response.data);
                 console.log(response.data);
             }).catch((error) => {
                 console.error('Error in login request:', error);
