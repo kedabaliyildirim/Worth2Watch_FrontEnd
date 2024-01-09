@@ -49,8 +49,8 @@
     <!-- Admin Deletion Form -->
     <div class="dangerZone">
       <h3>Danger Zone</h3>
-      <form @submit.prevent="removeAllComments">
-        <button type="submit">Remove All Comments</button>
+      <form @submit.prevent>
+        <button @click="removeAllComments" type="submit">Remove All Comments</button>
       </form>
       <form @submit.prevent>
         <button @click="removeDb('content')">Remove All Movies</button>
@@ -175,6 +175,7 @@ export default {
     },
     removeAllComments() {
       // TODO: Implement remove all comments functionality
+      this.$store.dispatch('removeAllComments')
       console.log('Remove All Comments functionality')
     },
     removeDb(dbName) {
