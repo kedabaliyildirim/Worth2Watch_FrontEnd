@@ -47,6 +47,8 @@ CACHE_DIR = ROOT / ".worth_cache"
 CACHE_DIR.mkdir(exist_ok=True)
 REVIEWS_CACHE = CACHE_DIR / "reviews"
 REVIEWS_CACHE.mkdir(exist_ok=True)
+IMDB_CACHE = CACHE_DIR / "imdb"
+IMDB_CACHE.mkdir(exist_ok=True)
 LLM_CACHE = CACHE_DIR / "llm"
 LLM_CACHE.mkdir(exist_ok=True)
 
@@ -123,6 +125,99 @@ def tmdb_get(path: str, params: dict | None = None, retries: int = 3) -> dict | 
             time.sleep(delay)
             delay *= 2
     return None
+
+
+def harvest_imdb_reviews(item: dict, max_reviews: int = 15) -> list[str]:
+    """Pull user reviews via IMDb's public GraphQL endpoint.
+
+    Why GraphQL when we couldn't scrape the HTML page: imdb.com/.../reviews
+    serves a JS-rendered shell that returns HTTP 202 to plain HTTP clients.
+    api.graphql.imdb.com is what their own SPA calls — no auth, no anti-
+    scraping, returns structured JSON. Disclaimer in the response says
+    'non-commercial only' which fits this project.
+
+    We sort by helpfulness so we get reviews the IMDb community has
+    upvoted, not random first-page essays.
+    """
+    imdb_id = item.get("imdbId")
+    if not imdb_id:
+        return []
+
+    cache_key = f"{imdb_id}.json"
+    cache_path = IMDB_CACHE / cache_key
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text())
+        except Exception:
+            pass
+
+    query = """
+    query R($id: ID!, $first: Int!) {
+      title(id: $id) {
+        reviews(first: $first, sort: { by: HELPFULNESS_SCORE, order: DESC }) {
+          edges {
+            node {
+              authorRating
+              summary { originalText }
+              text { originalText { plainText } }
+              helpfulness { upVotes downVotes }
+            }
+          }
+        }
+      }
+    }
+    """
+    body = {"query": query, "variables": {"id": imdb_id, "first": max_reviews}}
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+            "Version/17.0 Safari/605.1.15"
+        ),
+    }
+    status, text = http_post(
+        "https://api.graphql.imdb.com/", headers, body, timeout=30
+    )
+    if status != 200:
+        cache_path.write_text("[]")
+        return []
+    try:
+        data = json.loads(text)
+        edges = (
+            ((data.get("data") or {}).get("title") or {}).get("reviews") or {}
+        ).get("edges") or []
+    except (json.JSONDecodeError, AttributeError):
+        cache_path.write_text("[]")
+        return []
+
+    out: list[str] = []
+    for e in edges:
+        n = e.get("node") or {}
+        body_text = (
+            ((n.get("text") or {}).get("originalText") or {}).get("plainText")
+            or ""
+        ).strip()
+        summary = ((n.get("summary") or {}).get("originalText") or "").strip()
+        rating = n.get("authorRating")
+        helpful = (n.get("helpfulness") or {}).get("upVotes") or 0
+        if len(body_text) < 80:
+            continue
+        # Prefix with structured signal so the LLM can weight it
+        prefix_parts = []
+        if rating is not None:
+            prefix_parts.append(f"[Rating: {rating}/10]")
+        if helpful:
+            prefix_parts.append(f"[{helpful} found helpful]")
+        prefix = " ".join(prefix_parts)
+        if summary and summary.lower() not in body_text.lower()[:200]:
+            content = f"{prefix} {summary}\n\n{body_text}".strip()
+        else:
+            content = f"{prefix} {body_text}".strip()
+        out.append(content[:1500])
+
+    cache_path.write_text(json.dumps(out, ensure_ascii=False))
+    return out
 
 
 def harvest_tmdb_reviews(item: dict, max_reviews: int = 12) -> list[str]:
@@ -435,11 +530,41 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=0, help="0 = process everything")
     parser.add_argument("--from-rank", type=int, default=0)
+    parser.add_argument(
+        "--redo-suspicious",
+        action="store_true",
+        help="Re-process LLM-derived 'tartışmalı' verdicts where IMDb says strong love (≥8.0/50K). Adds IMDb GraphQL reviews to the source pool.",
+    )
     args = parser.parse_args()
 
     catalog = json.loads(PUBLIC.read_text())
     print(f"Loaded {len(catalog):,} items from {PUBLIC}")
     print(f"Backends: {', '.join(f'{p}:{m}' for p, m, _ in BACKENDS)}\n")
+
+    if args.redo_suspicious:
+        # Drop the suspicious verdicts so the main loop re-runs them. Also
+        # purge the LLM cache for those keys (otherwise the cached verdict
+        # would short-circuit the re-run).
+        targets = []
+        for m in catalog:
+            if m.get("worthVerdict") != "tartışmalı":
+                continue
+            src = m.get("worthSource") or ""
+            if not (src.startswith("groq:") or src.startswith("gemini:")):
+                continue
+            if (m.get("imdbRating") or 0) >= 8.0 and (m.get("imdbVotes") or 0) >= 50000:
+                targets.append(m)
+        for m in targets:
+            cache_path = LLM_CACHE / f"{m['mediaType']}_{m['tmdbId']}.json"
+            if cache_path.exists():
+                cache_path.unlink()
+            for k in (
+                "worthVerdict", "worthSummary", "worthScore",
+                "worthHighlights", "worthLowlights", "worthSourceCount",
+                "worthSource",
+            ):
+                m.pop(k, None)
+        print(f"--redo-suspicious: cleared {len(targets)} verdicts for re-run\n")
 
     # NB: catalog is already sorted by build_catalog.py (and the trim-1500
     # script applied a Bayesian rerank). We process in file order.
@@ -457,7 +582,9 @@ def main() -> None:
             skipped_cached += 1
             continue
 
-        comments = harvest_tmdb_reviews(item)
+        # Combine TMDB + IMDb sources — IMDb's helpfulness-sorted reviews
+        # are the strongest signal of community consensus
+        comments = harvest_imdb_reviews(item) + harvest_tmdb_reviews(item)
         result = llm_summarize(item, comments)
 
         if result:
