@@ -389,7 +389,15 @@ function runtimeFormatted(min, isTv) {
             </div>
 
             <p class="text-[10px] font-mono text-slate-500 pt-1">
-              Reddit r/movies + r/television tartışmalarından Gemini özeti
+              <template v-if="movie.worthSource === 'metrics'">
+                IMDb / TMDB oy istatistiklerinden hesaplandı (yorum verisi yok)
+              </template>
+              <template v-else-if="movie.worthSource && movie.worthSource.startsWith('groq:')">
+                TMDB kullanıcı yorumlarından Llama özeti
+              </template>
+              <template v-else>
+                TMDB kullanıcı yorumlarından LLM özeti
+              </template>
             </p>
           </div>
 

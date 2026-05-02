@@ -454,10 +454,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
     >
       <div class="w-8 text-center">#</div>
       <div class="w-16 flex-shrink-0"></div>
-      <div class="flex-1">Film</div>
+      <div class="flex-1">Film / Dizi</div>
       <div class="flex items-center gap-8">
+        <div class="w-14 text-center">Worth</div>
         <div class="w-14 text-center">TMDB</div>
-        <div class="w-32 text-center">Platform</div>
+        <div class="w-32 text-center">Platform / Bölümler</div>
       </div>
     </div>
 

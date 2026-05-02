@@ -201,6 +201,37 @@ function onBookmarkClick(e) {
     </div>
 
     <div class="hidden lg:flex items-center gap-8 mr-4">
+      <!-- Worth score: the brand verdict, prominent and always present -->
+      <div class="flex flex-col items-center w-14" v-if="verdict">
+        <span
+          class="text-[8px] font-extrabold uppercase tracking-wider text-slate-500"
+        >
+          Worth
+        </span>
+        <span
+          class="text-2xl font-black leading-none mt-0.5"
+          :class="
+            verdict.label === 'İzle'
+              ? 'text-emerald-400'
+              : verdict.label === 'Pas geç'
+                ? 'text-red-400'
+                : 'text-yellow-400'
+          "
+        >
+          {{ movie.worthScore != null ? movie.worthScore : '—' }}
+        </span>
+      </div>
+      <div class="flex flex-col items-center w-14" v-else>
+        <span
+          class="text-[8px] font-extrabold uppercase tracking-wider text-slate-700"
+        >
+          Worth
+        </span>
+        <span class="text-2xl font-black leading-none mt-0.5 text-slate-700">
+          —
+        </span>
+      </div>
+
       <div class="flex flex-col items-center w-14">
         <span
           class="w-7 h-7 rounded-sm flex items-center justify-center text-[8px] font-extrabold text-slate-900"

@@ -2,16 +2,31 @@
 """
 Worth2Watch — "izlenir mi?" özet üretici.
 
-Reddit'teki canlı film/dizi tartışmalarını çek, Gemini'a verdir, her item
-için tek-paragraflık verdict + 3 maddelik artı/eksi + 0-100 worthScore
-üret. Çıktı public/movies.json'a in-place merge edilir.
+Her item için TMDB'nin user reviews endpoint'inden gerçek kullanıcı
+yorumlarını çek, ücretsiz LLM'larla özetle, verdict + 3 maddelik
+artı/eksi + 0-100 worthScore üret. Çıktı public/movies.json'a
+in-place merge edilir.
 
-Ücretsiz pipeline:
-- Reddit JSON endpoint'i (anonim, user-agent zorunlu, rate ~60 rpm)
-- Gemini 2.5 Flash free tier (15 RPM, 1500 RPD, 1M TPM)
+Neden TMDB? Daha önce Reddit JSON kullanılıyordu ama Reddit User-Agent
+bazlı anonymous scraping'i agresif şekilde 403 ile bloklamaya başladı.
+TMDB'nin /reviews endpoint'i ise TMDB API key ile her zaman çalışıyor
+(zaten katalog için kullanıyoruz) ve /reviews kullanıcıların yazdığı
+gerçek essay-stili eleştiriler döndürüyor — Reddit kadar "konuşmalı"
+değil ama verdict çıkarımı için yeterli kalitede.
+
+Ücretsiz LLM pipeline (sırayla denenir, biri tükendiğinde diğerine düşer):
+- Groq llama-3.3-70b-versatile  (1000 RPD, en kaliteli)
+- Groq llama-3.1-8b-instant     (14400 RPD, hızlı yedek)
+- Gemini 2.5 Flash              (~250 RPD)
+- Gemini 2.5 Flash Lite         (~250 RPD)
+
+Optimizasyonlar:
+- Yorum yoksa LLM'e hiç gitme (yetersiz_veri olarak işaretle)
+- Top 6 yorum × 800 char ile input'u trim et (token tasarrufu)
 
 Run:
-    GEMINI_API_KEY=... python3 scripts/build_worth_summaries.py [--limit 50]
+    TMDB_API_KEY=... GROQ_API_KEY=... GEMINI_API_KEY=... \
+    python3 scripts/build_worth_summaries.py [--limit 1500]
 """
 
 from __future__ import annotations
@@ -23,46 +38,79 @@ import sys
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, quote_plus
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "movies.json"
 CACHE_DIR = ROOT / ".worth_cache"
 CACHE_DIR.mkdir(exist_ok=True)
-REDDIT_CACHE = CACHE_DIR / "reddit"
-REDDIT_CACHE.mkdir(exist_ok=True)
-GEMINI_CACHE = CACHE_DIR / "gemini"
-GEMINI_CACHE.mkdir(exist_ok=True)
+REVIEWS_CACHE = CACHE_DIR / "reviews"
+REVIEWS_CACHE.mkdir(exist_ok=True)
+LLM_CACHE = CACHE_DIR / "llm"
+LLM_CACHE.mkdir(exist_ok=True)
 
+TMDB_KEY = os.environ.get("TMDB_API_KEY", "").strip()
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-if not GEMINI_KEY:
-    sys.exit("GEMINI_API_KEY env var is required")
 
-UA = "Worth2Watch-research/0.1 (single-user; non-commercial)"
+if not TMDB_KEY:
+    sys.exit("TMDB_API_KEY env var is required")
+if not GROQ_KEY and not GEMINI_KEY:
+    sys.exit("Need at least one of GROQ_API_KEY or GEMINI_API_KEY")
 
-# Gemini 2.5 Flash on the free tier — typically 10 RPM / 250 RPD per
-# project. We pad to 7s between calls (~8 RPM) to leave headroom for
-# transient retries inside the per-minute bucket. If 2.5-flash gets
-# exhausted mid-run, fall back to gemini-2.5-flash-lite (separate
-# quota, lower quality but acceptable for the verdict format).
-GEMINI_MODEL_PRIMARY = "gemini-2.5-flash"
-GEMINI_MODEL_FALLBACK = "gemini-2.5-flash-lite"
-GEMINI_MIN_INTERVAL_S = 7.0
-_last_gemini_t = [0.0]
-_active_model = [GEMINI_MODEL_PRIMARY]
+# Backend rotation: tuples of (provider, model, min_interval_s).
+# Order matters — quality first. When one model returns a daily-quota
+# error we mark it exhausted and skip it for the rest of the run.
+BACKENDS: list[tuple[str, str, float]] = []
+if GROQ_KEY:
+    BACKENDS.append(("groq", "llama-3.3-70b-versatile", 2.5))
+    BACKENDS.append(("groq", "llama-3.1-8b-instant", 1.5))
+if GEMINI_KEY:
+    BACKENDS.append(("gemini", "gemini-2.5-flash", 7.0))
+    BACKENDS.append(("gemini", "gemini-2.5-flash-lite", 5.0))
+
+_exhausted: set[str] = set()  # backend keys ("provider:model")
+_last_call_t: dict[str, float] = {}
 
 
 # ---------------------------------------------------------------------------
-# Reddit
+# HTTP helpers
 # ---------------------------------------------------------------------------
 
 
-def reddit_get(url: str, retries: int = 3) -> dict | None:
+def http_post(url: str, headers: dict, body: dict, timeout: int = 60) -> tuple[int, str]:
+    # Override the default urllib UA — Cloudflare in front of Groq returns
+    # 1010 (banned browser signature) for the bare "Python-urllib/3.x" UA.
+    full_headers = {"User-Agent": "Worth2Watch-build/1.0 (curl-equivalent)"}
+    full_headers.update(headers)
+    req = Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers=full_headers,
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=timeout) as r:
+            return r.status, r.read().decode("utf-8")
+    except HTTPError as e:
+        return e.code, e.read().decode("utf-8", errors="ignore")
+
+
+# ---------------------------------------------------------------------------
+# TMDB review harvest
+# ---------------------------------------------------------------------------
+
+
+def tmdb_get(path: str, params: dict | None = None, retries: int = 3) -> dict | None:
+    p = {"api_key": TMDB_KEY}
+    if params:
+        p.update(params)
+    url = f"https://api.themoviedb.org/3{path}?{urlencode(p)}"
     delay = 2.0
     for _ in range(retries):
         try:
-            req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+            req = Request(url, headers={"Accept": "application/json"})
             with urlopen(req, timeout=20) as r:
                 return json.loads(r.read().decode("utf-8"))
         except HTTPError as e:
@@ -77,140 +125,60 @@ def reddit_get(url: str, retries: int = 3) -> dict | None:
     return None
 
 
-def harvest_reddit(item: dict, max_threads: int = 4, max_comments_per: int = 8) -> list[str]:
-    """Return a list of comment bodies (raw text) for the item.
+def harvest_tmdb_reviews(item: dict, max_reviews: int = 12) -> list[str]:
+    """Return a list of TMDB user review bodies for the item.
 
-    Tries the originalTitle (English most of the time) first since Reddit's
-    English-speaking community uses original titles. Falls back to the
-    Turkish title if the original returns nothing.
+    TMDB returns reviews paginated, but for our use case the first page
+    (~20 reviews max) is plenty — anything past that has even less
+    signal. We pull a couple of pages if available.
     """
     cache_key = f"{item['mediaType']}_{item['tmdbId']}.json"
-    cache_path = REDDIT_CACHE / cache_key
+    cache_path = REVIEWS_CACHE / cache_key
     if cache_path.exists():
         try:
             return json.loads(cache_path.read_text())
         except Exception:
             pass
 
-    year = item.get("year") or ""
-    is_tv = item["mediaType"] == "tv"
-    sub = "television" if is_tv else "movies"
+    kind = item["mediaType"]
+    tid = item["tmdbId"]
+    reviews: list[str] = []
 
-    queries: list[str] = []
-    original = (item.get("originalTitle") or "").strip()
-    title = (item.get("title") or "").strip()
-    if original:
-        queries.append(original)
-    if title and title != original:
-        queries.append(title)
-
-    threads: list[str] = []
-    for q_title in queries:
-        q = f'"{q_title}"'
-        if year:
-            q += f" {year}"
-        search_url = (
-            f"https://www.reddit.com/r/{sub}/search.json?"
-            f"q={quote_plus(q)}&restrict_sr=1&sort=top&limit={max_threads}"
-        )
-        search = reddit_get(search_url)
-        if not search:
-            continue
-        for child in (search.get("data") or {}).get("children") or []:
-            d = child.get("data") or {}
-            permalink = d.get("permalink")
-            if permalink and permalink not in threads:
-                threads.append(permalink)
-        if len(threads) >= max_threads:
+    for page in (1, 2):
+        data = tmdb_get(f"/{kind}/{tid}/reviews", {"language": "en-US", "page": page})
+        if not data:
+            break
+        for r in data.get("results") or []:
+            content = (r.get("content") or "").strip()
+            if len(content) < 80:
+                continue
+            reviews.append(content)
+        if page >= (data.get("total_pages") or 1):
+            break
+        if len(reviews) >= max_reviews * 2:
             break
 
-    if not threads:
-        # Last-ditch: search across all of reddit (no subreddit restriction)
-        kind_word = "tv" if is_tv else "movie"
-        q = f'"{(original or title)}" {kind_word}'
-        url = (
-            f"https://www.reddit.com/search.json?"
-            f"q={quote_plus(q)}&sort=top&limit={max_threads}&t=all"
-        )
-        search = reddit_get(url)
-        if search:
-            for child in (search.get("data") or {}).get("children") or []:
-                d = child.get("data") or {}
-                permalink = d.get("permalink")
-                if permalink and permalink not in threads:
-                    threads.append(permalink)
-
-    if not threads:
-        cache_path.write_text("[]")
-        return []
-
-    comments: list[str] = []
-    for permalink in threads[:max_threads]:
-        time.sleep(1.0)  # be polite
-        # Reddit permalinks are usually ASCII but the title slug can be
-        # transliterated non-ASCII (Korean / Thai / etc). urllib refuses
-        # non-ASCII in raw URLs, so percent-encode the path defensively.
-        safe_path = quote(permalink, safe="/")
-        thread_url = (
-            f"https://www.reddit.com{safe_path}.json?"
-            f"limit={max_comments_per}&sort=top"
-        )
-        thread = reddit_get(thread_url)
-        if not thread or not isinstance(thread, list) or len(thread) < 2:
-            continue
-        for child in (thread[1].get("data") or {}).get("children") or []:
-            body = (child.get("data") or {}).get("body") or ""
-            body = body.strip()
-            if not body or body == "[deleted]" or body == "[removed]":
-                continue
-            if len(body) < 30:
-                continue
-            comments.append(body[:1500])  # cap individual comment length
-
-    cache_path.write_text(json.dumps(comments, ensure_ascii=False))
-    return comments
+    cache_path.write_text(json.dumps(reviews, ensure_ascii=False))
+    return reviews[:max_reviews]
 
 
 # ---------------------------------------------------------------------------
-# Gemini
+# Prompt construction (kept identical across providers so cache is portable)
 # ---------------------------------------------------------------------------
 
 
-def gemini_url(model: str) -> str:
-    return (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent"
-    )
-
-
-def gemini_summarize(item: dict, comments: list[str]) -> dict | None:
-    if not comments:
-        return {
-            "worthVerdict": "yetersiz_veri",
-            "worthSummary": "Bu içerik hakkında yeterli halk yorumu bulunamadı.",
-            "worthScore": None,
-            "worthHighlights": [],
-            "worthLowlights": [],
-            "worthSourceCount": 0,
-        }
-
-    cache_key = f"{item['mediaType']}_{item['tmdbId']}.json"
-    cache_path = GEMINI_CACHE / cache_key
-    if cache_path.exists():
-        try:
-            return json.loads(cache_path.read_text())
-        except Exception:
-            pass
-
+def build_prompt(item: dict, comments: list[str]) -> str:
     title = item["title"]
     year = item.get("year") or "?"
     kind = "dizisini" if item["mediaType"] == "tv" else "filmini"
 
-    joined = "\n\n---\n\n".join(comments[:30])
-    if len(joined) > 18000:
-        joined = joined[:18000]
+    # Trim hard for token budget: top 6 reviews × 800 chars max.
+    trimmed = [c[:800] for c in comments[:6]]
+    joined = "\n\n---\n\n".join(trimmed)
+    if len(joined) > 7000:
+        joined = joined[:7000]
 
-    prompt = f"""Sen tarafsız bir film/dizi eleştirmenisin. Aşağıda Reddit'ten alınmış gerçek
+    return f"""Sen tarafsız bir film/dizi eleştirmenisin. Aşağıda TMDB'den alınmış gerçek
 kullanıcı yorumları var (bazıları olumlu, bazıları olumsuz, bazıları spoiler içerebilir).
 
 İÇERİK: "{title}" ({year})
@@ -222,16 +190,82 @@ GÖREV: Bu yorumları oku ve şu soruya tarafsız + dürüst cevap ver:
 "Bu {kind} izlemeye değer mi?"
 
 KURALLAR:
-- Yandaş olma. Eğer yorumlarda eleştiri varsa onu da yansıt.
+- Yandaş olma. Yorumlarda eleştiri varsa onu da yansıt.
 - Tek paragraf özet (en fazla 3-4 cümle, Türkçe).
 - 0-100 arası worthScore üret (yorumların geneli ne kadar olumlu).
 - Verdict: "izlemeye_değer", "tartışmalı", "izleme" üçünden biri.
-- Kısa (4-6 kelime) artı/eksi maddeleri çıkar — her birini izleyicinin sevdiği/eleştirdiği nokta olarak yaz.
+- Kısa (4-6 kelime) artı/eksi maddeleri.
 - Spoiler verme.
 
-Sadece şu JSON formatında cevap ver, başka hiçbir şey yazma:
+Sadece şu JSON formatında cevap ver:
 {{"worthVerdict": "izlemeye_değer|tartışmalı|izleme", "worthScore": <0-100>, "worthSummary": "...", "worthHighlights": ["...", "..."], "worthLowlights": ["...", "..."]}}"""
 
+
+# ---------------------------------------------------------------------------
+# LLM backends
+# ---------------------------------------------------------------------------
+
+
+def throttle(backend_key: str, min_interval: float) -> None:
+    last = _last_call_t.get(backend_key, 0.0)
+    elapsed = time.time() - last
+    if elapsed < min_interval:
+        time.sleep(min_interval - elapsed)
+
+
+def call_groq(model: str, prompt: str, min_interval: float) -> tuple[dict | None, str | None]:
+    """Returns (parsed_result, exhaustion_reason). On daily quota the
+    reason string is non-None and the caller can mark this backend
+    exhausted for the rest of the run."""
+    backend_key = f"groq:{model}"
+    throttle(backend_key, min_interval)
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3,
+        "max_tokens": 800,
+        "response_format": {"type": "json_object"},
+    }
+    delay = 4.0
+    for _ in range(3):
+        status, text = http_post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+            body,
+        )
+        _last_call_t[backend_key] = time.time()
+        if status == 200:
+            try:
+                payload = json.loads(text)
+                content = payload["choices"][0]["message"]["content"]
+                return json.loads(content), None
+            except (json.JSONDecodeError, KeyError, IndexError):
+                return None, None
+        if status == 429:
+            # Distinguish per-minute (retry quickly) from per-day (give up)
+            if "rate_limit_exceeded" in text and "minute" in text.lower():
+                time.sleep(delay)
+                delay *= 1.7
+                continue
+            if "daily" in text.lower() or "tokens per day" in text.lower() or "requests per day" in text.lower():
+                return None, "daily_quota"
+            # Unknown 429 — back off once, then move on
+            time.sleep(delay)
+            delay *= 1.7
+            continue
+        if status in (500, 502, 503):
+            time.sleep(delay)
+            delay *= 1.7
+            continue
+        # 400/401/403 etc — bail, don't waste retries
+        print(f"    ! groq/{model} {status}: {text[:160]}", flush=True)
+        return None, None
+    return None, None
+
+
+def call_gemini(model: str, prompt: str, min_interval: float) -> tuple[dict | None, str | None]:
+    backend_key = f"gemini:{model}"
+    throttle(backend_key, min_interval)
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -239,86 +273,155 @@ Sadece şu JSON formatında cevap ver, başka hiçbir şey yazma:
             "responseMimeType": "application/json",
         },
     }
-
-    # Throttle for free-tier RPM
-    elapsed = time.time() - _last_gemini_t[0]
-    if elapsed < GEMINI_MIN_INTERVAL_S:
-        time.sleep(GEMINI_MIN_INTERVAL_S - elapsed)
-
-    payload = None
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_KEY}"
     delay = 5.0
-    daily_exhausted = False
-    for attempt in range(4):
-        try:
-            req = Request(
-                f"{gemini_url(_active_model[0])}?key={GEMINI_KEY}",
-                data=json.dumps(body).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urlopen(req, timeout=60) as r:
-                _last_gemini_t[0] = time.time()
-                payload = json.loads(r.read().decode("utf-8"))
-                break
-        except HTTPError as e:
-            err_body = e.read().decode("utf-8", errors="ignore")
-            short = err_body[:160].replace("\n", " ")
-            if e.code == 429:
-                # PerDay quota mention → switch to fallback model and try once more
-                if (
-                    "PerDay" in err_body
-                    and _active_model[0] != GEMINI_MODEL_FALLBACK
-                ):
-                    print(
-                        f"    ! daily quota hit on {_active_model[0]}, switching to {GEMINI_MODEL_FALLBACK}",
-                        flush=True,
-                    )
-                    _active_model[0] = GEMINI_MODEL_FALLBACK
-                    delay = 2.0
-                    continue
-                if (
-                    "PerDay" in err_body
-                    and _active_model[0] == GEMINI_MODEL_FALLBACK
-                ):
-                    daily_exhausted = True
-                    print("    ! both models exhausted for today", flush=True)
-                    break
-                print(f"    ! Gemini 429, retry in {delay}s — {short}", flush=True)
-                time.sleep(delay)
-                delay *= 2
-                continue
-            if e.code in (500, 502, 503):
-                print(f"    ! Gemini {e.code}, retry in {delay}s", flush=True)
-                time.sleep(delay)
-                delay *= 2
-                continue
-            print(f"    ! Gemini {e.code}: {short}", flush=True)
-            return None
-        except (URLError, json.JSONDecodeError) as exc:
-            print(f"    ! Gemini transport: {exc}", flush=True)
+    for _ in range(3):
+        status, text = http_post(url, {"Content-Type": "application/json"}, body)
+        _last_call_t[backend_key] = time.time()
+        if status == 200:
+            try:
+                payload = json.loads(text)
+                content = payload["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(content), None
+            except (json.JSONDecodeError, KeyError, IndexError):
+                return None, None
+        if status == 429:
+            if "PerDay" in text:
+                return None, "daily_quota"
             time.sleep(delay)
-            delay *= 2
+            delay *= 1.7
+            continue
+        if status in (500, 502, 503):
+            time.sleep(delay)
+            delay *= 1.7
+            continue
+        print(f"    ! gemini/{model} {status}: {text[:160]}", flush=True)
+        return None, None
+    return None, None
 
-    if daily_exhausted:
-        sys.exit("Daily quota exhausted on both models — re-run tomorrow")
-    if payload is None:
-        return None
 
-    try:
-        text = payload["candidates"][0]["content"]["parts"][0]["text"]
-        result = json.loads(text)
-    except (KeyError, IndexError, json.JSONDecodeError) as exc:
-        print(f"    ! Gemini parse: {exc}", flush=True)
-        return None
+def metrics_verdict(item: dict) -> dict:
+    """Verdict from raw stats when no review text is available.
 
-    out = {
-        "worthVerdict": result.get("worthVerdict") or "tartışmalı",
-        "worthSummary": (result.get("worthSummary") or "").strip(),
-        "worthScore": result.get("worthScore"),
-        "worthHighlights": result.get("worthHighlights") or [],
-        "worthLowlights": result.get("worthLowlights") or [],
-        "worthSourceCount": len(comments),
+    The reasoning: if a million people voted Breaking Bad 9.5 on IMDb,
+    that itself is a tarafsız community judgment. We don't need essays
+    to say "izlenir." Score weights rating by log(votes) so a 9.5 with
+    20 votes can't outrank an 8.7 with 500K votes.
+    """
+    import math
+
+    imdb_r = item.get("imdbRating") or 0
+    imdb_v = item.get("imdbVotes") or 0
+    tmdb_r = item.get("tmdbRating") or 0
+    tmdb_v = item.get("tmdbVotes") or 0
+
+    # Pick the better-attested signal
+    if imdb_v >= 5000:
+        rating, votes, source = imdb_r, imdb_v, "IMDb"
+    elif tmdb_v >= 200:
+        rating, votes, source = tmdb_r, tmdb_v, "TMDB"
+    elif imdb_v > 0:
+        rating, votes, source = imdb_r, imdb_v, "IMDb"
+    else:
+        rating, votes, source = tmdb_r, tmdb_v, "TMDB"
+
+    # Vote weight: 0..1 across log10 scale (10..1M votes)
+    if votes > 0:
+        weight = max(0.0, min(1.0, (math.log10(max(votes, 10)) - 1) / 5))
+    else:
+        weight = 0.0
+    confidence = "yüksek" if weight > 0.7 else "orta" if weight > 0.4 else "düşük"
+
+    if rating >= 8.0 and weight >= 0.5:
+        verdict = "izlemeye_değer"
+        score = int(round(min(95, 70 + (rating - 8) * 12 + weight * 8)))
+    elif rating >= 7.0 and weight >= 0.3:
+        verdict = "izlemeye_değer" if rating >= 7.5 else "tartışmalı"
+        score = int(round(min(85, 55 + (rating - 7) * 12 + weight * 8)))
+    elif rating >= 6.0:
+        verdict = "tartışmalı"
+        score = int(round(40 + (rating - 6) * 10))
+    elif rating > 0:
+        verdict = "izleme"
+        score = int(round(max(15, 30 - (6 - rating) * 6)))
+    else:
+        verdict = "tartışmalı"
+        score = 50
+
+    votes_str = f"{int(votes):,}".replace(",", ".") if votes else "az sayıda"
+    summary = (
+        f"{source} üzerinde {votes_str} kullanıcı bu içeriği "
+        f"{rating:.1f}/10 olarak puanladı (güven: {confidence}). "
+    )
+    if verdict == "izlemeye_değer":
+        summary += "Geniş izleyici kitlesi tarafından beğenilmiş, izlemeye değer."
+    elif verdict == "tartışmalı":
+        summary += "İzleyiciler arasında karışık tepkiler var, kişisel tercihinize bağlı."
+    else:
+        summary += "Genel izleyici kitlesi tarafından zayıf bulunmuş."
+
+    return {
+        "worthVerdict": verdict,
+        "worthSummary": summary,
+        "worthScore": score,
+        "worthHighlights": [],
+        "worthLowlights": [],
+        "worthSourceCount": int(votes) if votes else 0,
+        "worthSource": "metrics",
     }
+
+
+def llm_summarize(item: dict, comments: list[str]) -> dict | None:
+    """Try each non-exhausted backend in order until one returns a result."""
+    cache_key = f"{item['mediaType']}_{item['tmdbId']}.json"
+    cache_path = LLM_CACHE / cache_key
+    if cache_path.exists():
+        cached = None
+        try:
+            cached = json.loads(cache_path.read_text())
+        except Exception:
+            pass
+        # If old cache says yetersiz_veri but we now have a metrics
+        # fallback, recompute (don't return the stale "no data" answer)
+        if cached and cached.get("worthVerdict") != "yetersiz_veri":
+            return cached
+
+    # No review text — use stats-only verdict instead of bailing
+    if len(comments) < 3:
+        out = metrics_verdict(item)
+        cache_path.write_text(json.dumps(out, ensure_ascii=False))
+        return out
+
+    prompt = build_prompt(item, comments)
+
+    for provider, model, interval in BACKENDS:
+        backend_key = f"{provider}:{model}"
+        if backend_key in _exhausted:
+            continue
+        if provider == "groq":
+            result, reason = call_groq(model, prompt, interval)
+        else:
+            result, reason = call_gemini(model, prompt, interval)
+        if reason == "daily_quota":
+            print(f"    ! {backend_key} daily quota exhausted, skipping for rest of run", flush=True)
+            _exhausted.add(backend_key)
+            continue
+        if result:
+            out = {
+                "worthVerdict": result.get("worthVerdict") or "tartışmalı",
+                "worthSummary": (result.get("worthSummary") or "").strip(),
+                "worthScore": result.get("worthScore"),
+                "worthHighlights": result.get("worthHighlights") or [],
+                "worthLowlights": result.get("worthLowlights") or [],
+                "worthSourceCount": len(comments),
+                "worthSource": backend_key,
+            }
+            cache_path.write_text(json.dumps(out, ensure_ascii=False))
+            return out
+
+    # All LLM backends failed — fall through to metrics so the catalog
+    # never has empty cells. Cache it so the next run doesn't retry.
+    out = metrics_verdict(item)
     cache_path.write_text(json.dumps(out, ensure_ascii=False))
     return out
 
@@ -330,66 +433,64 @@ Sadece şu JSON formatında cevap ver, başka hiçbir şey yazma:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=50,
-        help="How many top items to process this run (0 = all)",
-    )
-    parser.add_argument(
-        "--from-rank",
-        type=int,
-        default=0,
-        help="Start at the Nth-best item (for resuming a long run)",
-    )
+    parser.add_argument("--limit", type=int, default=0, help="0 = process everything")
+    parser.add_argument("--from-rank", type=int, default=0)
     args = parser.parse_args()
 
     catalog = json.loads(PUBLIC.read_text())
     print(f"Loaded {len(catalog):,} items from {PUBLIC}")
+    print(f"Backends: {', '.join(f'{p}:{m}' for p, m, _ in BACKENDS)}\n")
 
-    # Process highest-rated first (the 'izlenmeye değer mi' question matters
-    # most for items the user is likely to consider).
-    catalog.sort(
-        key=lambda m: (
-            -(m.get("imdbRating") or 0),
-            -(m.get("tmdbRating") or 0),
-            -(m.get("popularity") or 0),
-        )
-    )
-
+    # NB: catalog is already sorted by build_catalog.py (and the trim-1500
+    # script applied a Bayesian rerank). We process in file order.
     end = len(catalog) if args.limit == 0 else min(len(catalog), args.from_rank + args.limit)
     work = catalog[args.from_rank:end]
     print(f"Processing rank {args.from_rank}..{end} ({len(work)} items)\n")
 
     succeeded = 0
-    skipped = 0
+    skipped_cached = 0
+    skipped_no_data = 0
+    failed = 0
+
     for i, item in enumerate(work, 1):
-        # Skip if already done in a prior run
         if item.get("worthSummary"):
-            skipped += 1
+            skipped_cached += 1
             continue
 
-        comments = harvest_reddit(item)
-        verdict = gemini_summarize(item, comments)
+        comments = harvest_tmdb_reviews(item)
+        result = llm_summarize(item, comments)
 
-        if verdict:
-            item.update(verdict)
-            succeeded += 1
+        if result:
+            item.update(result)
+            if result["worthVerdict"] == "yetersiz_veri":
+                skipped_no_data += 1
+            else:
+                succeeded += 1
+            src = result.get("worthSource", "?")
+            verdict = result.get("worthVerdict") or "?"
+            score = result.get("worthScore")
             print(
-                f"  [{i}/{len(work)}] {item['title'][:50]:50s}  "
-                f"{verdict.get('worthVerdict', '?'):16s}  "
-                f"score={verdict.get('worthScore')}  src={verdict.get('worthSourceCount')}",
+                f"  [{i}/{len(work)}] {item['title'][:46]:46s}  "
+                f"{verdict:16s}  score={score!s:4s}  src={result.get('worthSourceCount')}  via={src}",
                 flush=True,
             )
         else:
-            print(f"  [{i}/{len(work)}] {item['title'][:50]:50s}  FAILED", flush=True)
+            failed += 1
+            print(f"  [{i}/{len(work)}] {item['title'][:46]:46s}  FAILED (all backends)", flush=True)
+            # If every backend is exhausted, no point continuing
+            if len(_exhausted) == len(BACKENDS):
+                print("\n! All backends exhausted for today. Re-run tomorrow.", flush=True)
+                break
 
-        # Save incrementally every 10 items so a crash doesn't lose progress
-        if i % 10 == 0:
+        # Incremental save every 25 items
+        if i % 25 == 0:
             PUBLIC.write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")))
 
     PUBLIC.write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")))
-    print(f"\n✓ done — {succeeded} new, {skipped} already cached")
+    print(
+        f"\n✓ done — {succeeded} new, {skipped_no_data} yetersiz_veri, "
+        f"{skipped_cached} already cached, {failed} failed"
+    )
     print(f"  catalog now {PUBLIC.stat().st_size / 1024:.0f} KB")
 
 
