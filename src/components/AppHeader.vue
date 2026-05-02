@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import { Film, Settings } from 'lucide-vue-next'
+import { Film } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -35,14 +35,7 @@ import { Film, Settings } from 'lucide-vue-next'
           class="px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors text-slate-400 hover:text-white hover:bg-slate-800/60"
           active-class="text-white bg-slate-800"
         >
-          Ana Sayfa
-        </RouterLink>
-        <RouterLink
-          to="/admin"
-          class="px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center gap-1.5"
-          active-class="text-white bg-slate-800"
-        >
-          <Settings :size="14" /> Admin
+          Keşfet
         </RouterLink>
       </nav>
     </div>

@@ -11,17 +11,18 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'toggleWatchlist'])
 
-const releaseYear = computed(() => {
-  if (!props.movie.movieReleaseDate) return ''
-  return String(props.movie.movieReleaseDate).slice(0, 4)
-})
-
 const runtime = computed(() => {
-  const r = props.movie.movieRuntime
+  const r = props.movie.runtime
   if (!r) return null
   const h = Math.floor(r / 60)
   const m = r % 60
   return h > 0 ? `${h}s ${m}d` : `${m}d`
+})
+
+const genreLine = computed(() => {
+  const g = props.movie.genres
+  if (!g || !g.length) return ''
+  return g.slice(0, 3).join(' · ')
 })
 
 function ratingColor(score) {
@@ -32,17 +33,9 @@ function ratingColor(score) {
   return 'text-red-400'
 }
 
-function tomatoColor(score) {
-  if (!score && score !== 0) return 'text-slate-400'
-  if (score >= 90) return 'text-emerald-400'
-  if (score >= 75) return 'text-yellow-400'
-  if (score >= 60) return 'text-orange-400'
-  return 'text-red-400'
-}
-
 function onBookmarkClick(e) {
   e.stopPropagation()
-  emit('toggleWatchlist', props.movie.movieName)
+  emit('toggleWatchlist', props.movie.tmdbId)
 }
 </script>
 
@@ -78,7 +71,7 @@ function onBookmarkClick(e) {
       class="relative w-16 h-24 flex-shrink-0 rounded-lg overflow-hidden shadow-lg border border-slate-700/50 group-hover:scale-105 transition-transform duration-300"
       style="will-change: transform"
     >
-      <Poster :src="movie.imageURL" :alt="movie.movieName" />
+      <Poster :src="movie.poster" :alt="movie.title" />
     </div>
 
     <div class="flex-1 min-w-0">
@@ -86,10 +79,10 @@ function onBookmarkClick(e) {
         <h3
           class="text-lg font-bold text-white truncate group-hover:text-indigo-300 transition-colors duration-300"
         >
-          {{ movie.movieName }}
+          {{ movie.title }}
         </h3>
-        <span v-if="releaseYear" class="text-xs text-slate-500 font-mono">
-          {{ releaseYear }}
+        <span v-if="movie.year" class="text-xs text-slate-500 font-mono">
+          {{ movie.year }}
         </span>
       </div>
       <div
@@ -97,11 +90,11 @@ function onBookmarkClick(e) {
       >
         <span class="flex items-center gap-1 font-semibold" :class="ratingColor(movie.imdbRating)">
           <Star :size="14" fill="currentColor" />
-          {{ movie.imdbRating ? movie.imdbRating.toFixed(1) : 'N/A' }}
+          {{ movie.imdbRating ? movie.imdbRating.toFixed(1) : '—' }}
         </span>
         <span class="w-1 h-1 bg-slate-600 rounded-full" />
-        <span class="truncate max-w-[260px]">
-          {{ movie.movieGenre }}
+        <span class="truncate max-w-[280px]">
+          {{ genreLine }}
         </span>
         <template v-if="runtime">
           <span class="w-1 h-1 bg-slate-600 rounded-full" />
@@ -136,35 +129,21 @@ function onBookmarkClick(e) {
         </span>
       </div>
 
-      <div class="flex flex-col items-center w-14">
-        <span class="text-base leading-none">🍅</span>
-        <span
-          class="text-sm font-bold mt-1"
-          :class="tomatoColor(movie.rottenTomatoesRating)"
-        >
-          {{ movie.rottenTomatoesRating != null ? `${movie.rottenTomatoesRating}%` : '—' }}
-        </span>
-      </div>
-
       <div
-        v-if="
-          movie.movieProviders &&
-          Array.isArray(movie.movieProviders) &&
-          movie.movieProviders.length
-        "
+        v-if="movie.providers && movie.providers.length"
         class="flex items-center gap-1.5 w-32"
       >
         <img
-          v-for="p in movie.movieProviders.slice(0, 4)"
-          :key="p.provider_id"
-          :src="`https://image.tmdb.org/t/p/original${p.logo_path}`"
-          :alt="p.provider_name"
-          :title="p.provider_name"
+          v-for="p in movie.providers.slice(0, 4)"
+          :key="p.id"
+          :src="`https://image.tmdb.org/t/p/original${p.logo}`"
+          :alt="p.name"
+          :title="p.name"
           class="w-7 h-7 rounded object-cover ring-1 ring-slate-700/60"
           loading="lazy"
         />
       </div>
-      <div v-else class="w-32 text-xs text-slate-500 italic">Platform yok</div>
+      <div v-else class="w-32 text-xs text-slate-500 italic">Türkiye'de yok</div>
     </div>
   </div>
 </template>

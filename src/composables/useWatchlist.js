@@ -35,12 +35,15 @@ watch(
 
 export function useWatchlist() {
   function has(id) {
-    return ids.value.has(id)
+    if (id == null) return false
+    return ids.value.has(String(id))
   }
   function toggle(id) {
+    if (id == null) return
+    const key = String(id)
     const next = new Set(ids.value)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
     ids.value = next
   }
   function clear() {

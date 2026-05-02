@@ -1,6 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useStore } from 'vuex'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search,
@@ -11,85 +10,168 @@ import {
   Bookmark,
   Sparkles,
   X,
+  Filter as FilterIcon,
 } from 'lucide-vue-next'
 import MovieListItem from './MovieListItem.vue'
 import SkeletonRow from './SkeletonRow.vue'
+import { useMovies } from '../composables/useMovies.js'
 import { useWatchlist } from '../composables/useWatchlist.js'
 
-const store = useStore()
 const router = useRouter()
+const { movies, loading, error } = useMovies()
 const watchlist = useWatchlist()
 
 const searchTerm = ref('')
 const sortOption = ref('imdbRating')
 const sortOrder = ref('desc')
 const onlyWatchlist = ref(false)
+const selectedGenres = ref([])
+const selectedProviders = ref([])
+const yearFrom = ref(null)
+const yearTo = ref(null)
 const page = ref(1)
-const pageSize = 20
+const pageSize = 30
 const sortMenuOpen = ref(false)
 
 const SORT_OPTIONS = [
   { id: 'imdbRating', label: 'IMDB' },
   { id: 'tmdbRating', label: 'TMDB' },
-  { id: 'rottenTomatoesRating', label: 'Rotten Tomatoes' },
-  { id: 'movieReleaseDate', label: 'Yayın Tarihi' },
-  { id: 'movieName', label: 'Alfabetik' },
+  { id: 'releaseDate', label: 'Yayın Tarihi' },
+  { id: 'popularity', label: 'Popülerlik' },
+  { id: 'title', label: 'Alfabetik' },
 ]
 
-const movies = computed(() => store.state.movieData ?? [])
-const loading = computed(() => !movies.value || movies.value.length === 0)
+const allGenres = computed(() => {
+  const set = new Set()
+  for (const m of movies.value) {
+    for (const g of m.genres || []) set.add(g)
+  }
+  return [...set].sort()
+})
 
-function fetchPage(p) {
-  store.dispatch('getMovieData', {
-    page: p,
-    page_size: pageSize,
-    sort_by: sortOption.value,
-    sort_order: sortOrder.value === 'asc' ? 1 : -1,
-  })
-}
+// Provider chip row için: TR'de en çok film barındıran ilk 12 platformu
+// göster. Aksi halde TMDB'nin 100+ niche channel'ı liste'yi kirletiyor
+// ("A&E Crime Central", "ALLBLK Amazon channel" vs.).
+const allProviders = computed(() => {
+  const counts = new Map()
+  const meta = new Map()
+  for (const m of movies.value) {
+    for (const p of m.providers || []) {
+      counts.set(p.id, (counts.get(p.id) || 0) + 1)
+      if (!meta.has(p.id)) meta.set(p.id, p)
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([id]) => meta.get(id))
+})
 
-onMounted(() => fetchPage(page.value))
-
-watch([page, sortOption, sortOrder], () => {
-  fetchPage(page.value)
+const yearBounds = computed(() => {
+  let min = null
+  let max = null
+  for (const m of movies.value) {
+    const y = parseInt(m.year, 10)
+    if (Number.isNaN(y)) continue
+    if (min === null || y < min) min = y
+    if (max === null || y > max) max = y
+  }
+  return { min, max }
 })
 
 const filtered = computed(() => {
-  let res = [...movies.value]
+  if (!movies.value.length) return []
+  let res = movies.value
   const term = searchTerm.value.trim().toLowerCase()
   if (term) {
     res = res.filter(
       (m) =>
-        m.movieName?.toLowerCase().includes(term) ||
-        (m.movieGenre || '').toLowerCase().includes(term)
+        m.title?.toLowerCase().includes(term) ||
+        m.originalTitle?.toLowerCase().includes(term) ||
+        (m.genres || []).some((g) => g.toLowerCase().includes(term))
     )
   }
-  if (onlyWatchlist.value) {
-    res = res.filter((m) => watchlist.has(m.movieName))
+  if (selectedGenres.value.length) {
+    res = res.filter((m) =>
+      selectedGenres.value.every((g) => (m.genres || []).includes(g))
+    )
   }
-  res.sort((a, b) => {
-    const dir = sortOrder.value === 'asc' ? 1 : -1
-    const av = a[sortOption.value] ?? 0
-    const bv = b[sortOption.value] ?? 0
+  if (selectedProviders.value.length) {
+    const want = new Set(selectedProviders.value)
+    res = res.filter((m) =>
+      (m.providers || []).some((p) => want.has(p.id))
+    )
+  }
+  if (yearFrom.value) {
+    res = res.filter((m) => parseInt(m.year, 10) >= yearFrom.value)
+  }
+  if (yearTo.value) {
+    res = res.filter((m) => parseInt(m.year, 10) <= yearTo.value)
+  }
+  if (onlyWatchlist.value) {
+    res = res.filter((m) => watchlist.has(m.tmdbId))
+  }
+
+  const dir = sortOrder.value === 'asc' ? 1 : -1
+  res = [...res].sort((a, b) => {
+    const av = a[sortOption.value]
+    const bv = b[sortOption.value]
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
     if (typeof av === 'string') return av.localeCompare(bv) * dir
     return (av - bv) * dir
   })
   return res
 })
 
-const totalPages = computed(() => Math.max(1, store.state.totalPageCount || 1))
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filtered.value.length / pageSize))
+)
+
+const paged = computed(() =>
+  filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize)
+)
 
 const sortLabel = computed(
   () => SORT_OPTIONS.find((o) => o.id === sortOption.value)?.label || ''
 )
 
+const hasActiveFilters = computed(
+  () =>
+    !!searchTerm.value ||
+    onlyWatchlist.value ||
+    selectedGenres.value.length > 0 ||
+    selectedProviders.value.length > 0 ||
+    yearFrom.value !== null ||
+    yearTo.value !== null
+)
+
 function selectMovie(movie) {
-  router.push({ name: 'movie', params: { id: movie.movieName } })
+  router.push({ name: 'movie', params: { id: movie.tmdbId } })
 }
 
 function clearFilters() {
   searchTerm.value = ''
   onlyWatchlist.value = false
+  selectedGenres.value = []
+  selectedProviders.value = []
+  yearFrom.value = null
+  yearTo.value = null
+}
+
+function toggleGenre(g) {
+  const i = selectedGenres.value.indexOf(g)
+  if (i >= 0) selectedGenres.value.splice(i, 1)
+  else selectedGenres.value.push(g)
+  page.value = 1
+}
+
+function toggleProvider(id) {
+  const i = selectedProviders.value.indexOf(id)
+  if (i >= 0) selectedProviders.value.splice(i, 1)
+  else selectedProviders.value.push(id)
+  page.value = 1
 }
 
 function onClickOutside(e) {
@@ -101,7 +183,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
 <template>
   <main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-6 flex flex-wrap items-center gap-3">
+    <!-- Search + sort row -->
+    <div class="mb-4 flex flex-wrap items-center gap-3">
       <div class="relative flex-1 min-w-[260px] max-w-xl">
         <Search
           :size="16"
@@ -112,6 +195,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           type="text"
           placeholder="Film veya tür ara..."
           class="w-full pl-9 pr-3 py-2.5 bg-slate-800/40 border border-slate-700/50 focus:border-indigo-500/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-200 placeholder:text-slate-500 rounded-lg text-sm transition-colors"
+          @input="page = 1"
         />
       </div>
 
@@ -125,7 +209,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           {{ sortLabel }}
           <ChevronDown
             :size="14"
-            :class="sortMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'"
+            :class="
+              sortMenuOpen
+                ? 'rotate-180 transition-transform'
+                : 'transition-transform'
+            "
           />
         </button>
         <div
@@ -161,7 +249,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       >
         <ChevronDown
           :size="18"
-          :class="sortOrder === 'asc' ? 'rotate-180 transition-transform' : 'transition-transform'"
+          :class="
+            sortOrder === 'asc'
+              ? 'rotate-180 transition-transform'
+              : 'transition-transform'
+          "
         />
       </button>
 
@@ -175,10 +267,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
             ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_18px_rgba(99,102,241,0.35)]'
             : 'bg-slate-800/40 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
         "
-        @click="onlyWatchlist = !onlyWatchlist"
+        @click="onlyWatchlist = !onlyWatchlist; page = 1"
       >
         <Bookmark :size="14" :fill="onlyWatchlist ? 'currentColor' : 'none'" />
-        İzleme listem
+        Listem
         <span
           class="text-[10px] font-mono"
           :class="onlyWatchlist ? 'text-white/80' : 'text-slate-500'"
@@ -188,7 +280,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </button>
 
       <button
-        v-if="searchTerm || onlyWatchlist"
+        v-if="hasActiveFilters"
         type="button"
         class="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition-colors ml-auto"
         @click="clearFilters"
@@ -197,10 +289,100 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </button>
     </div>
 
+    <!-- Filter row: provider chips + year range -->
+    <div class="mb-4 space-y-3">
+      <div v-if="allProviders.length" class="flex items-center gap-3">
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5 flex-shrink-0"
+        >
+          <FilterIcon :size="12" /> Platform
+        </span>
+        <div class="no-scrollbar flex-1 flex items-center gap-2 overflow-x-auto py-1">
+          <button
+            v-for="p in allProviders"
+            :key="p.id"
+            type="button"
+            :aria-pressed="selectedProviders.includes(p.id)"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap"
+            :class="
+              selectedProviders.includes(p.id)
+                ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
+                : 'bg-slate-800/40 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
+            "
+            @click="toggleProvider(p.id)"
+          >
+            <img
+              :src="`https://image.tmdb.org/t/p/original${p.logo}`"
+              :alt="p.name"
+              class="w-4 h-4 rounded object-cover"
+            />
+            {{ p.name }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="allGenres.length" class="flex items-center gap-3">
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex-shrink-0"
+        >
+          Tür
+        </span>
+        <div class="no-scrollbar flex-1 flex items-center gap-2 overflow-x-auto py-1">
+          <button
+            v-for="g in allGenres"
+            :key="g"
+            type="button"
+            :aria-pressed="selectedGenres.includes(g)"
+            class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap"
+            :class="
+              selectedGenres.includes(g)
+                ? 'bg-indigo-500 text-white border-indigo-400'
+                : 'bg-slate-800/40 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
+            "
+            @click="toggleGenre(g)"
+          >
+            {{ g }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="yearBounds.min && yearBounds.max"
+        class="flex items-center gap-3"
+      >
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex-shrink-0"
+        >
+          Yıl
+        </span>
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="yearFrom"
+            type="number"
+            :min="yearBounds.min"
+            :max="yearBounds.max"
+            :placeholder="yearBounds.min"
+            class="w-20 px-2 py-1 bg-slate-800/40 border border-slate-700/60 focus:border-indigo-500/60 focus:outline-none rounded-md text-xs text-slate-200 placeholder:text-slate-500"
+            @input="page = 1"
+          />
+          <span class="text-slate-500 text-xs">→</span>
+          <input
+            v-model.number="yearTo"
+            type="number"
+            :min="yearBounds.min"
+            :max="yearBounds.max"
+            :placeholder="yearBounds.max"
+            class="w-20 px-2 py-1 bg-slate-800/40 border border-slate-700/60 focus:border-indigo-500/60 focus:outline-none rounded-md text-xs text-slate-200 placeholder:text-slate-500"
+            @input="page = 1"
+          />
+        </div>
+      </div>
+    </div>
+
     <div class="flex justify-between items-end mb-4 px-1">
       <h2 class="text-2xl font-bold text-white flex items-center gap-2">
         <Sparkles class="text-indigo-400" :size="22" />
-        İzlenecek Filmler
+        Keşfet
       </h2>
       <span class="text-xs text-slate-500 font-mono">
         {{ filtered.length }} sonuç
@@ -215,23 +397,33 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       <div class="flex-1">Film</div>
       <div class="flex items-center gap-8">
         <div class="w-14 text-center">TMDB</div>
-        <div class="w-14 text-center">RT</div>
         <div class="w-32 text-center">Platform</div>
       </div>
     </div>
 
     <div class="space-y-2">
       <template v-if="loading">
-        <SkeletonRow v-for="i in 5" :key="i" />
+        <SkeletonRow v-for="i in 8" :key="i" />
       </template>
 
-      <template v-else-if="filtered.length > 0">
+      <div
+        v-else-if="error"
+        class="text-center py-16 px-6 bg-red-500/10 rounded-2xl border border-red-500/30 border-dashed"
+      >
+        <p class="text-red-300 font-bold text-lg mb-1">Katalog yüklenemedi</p>
+        <p class="text-slate-500 text-sm mb-5">
+          movies.json çekilemedi — public/movies.json'ı build_catalog.py ile
+          oluştur.
+        </p>
+      </div>
+
+      <template v-else-if="paged.length > 0">
         <MovieListItem
-          v-for="(m, i) in filtered"
-          :key="m.movieName"
+          v-for="(m, i) in paged"
+          :key="m.tmdbId"
           :movie="m"
           :index="(page - 1) * pageSize + i + 1"
-          :in-watchlist="watchlist.has(m.movieName)"
+          :in-watchlist="watchlist.has(m.tmdbId)"
           @select="selectMovie"
           @toggle-watchlist="watchlist.toggle"
         />
@@ -243,11 +435,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       >
         <p class="text-slate-300 font-bold text-lg mb-1">Hiç sonuç yok</p>
         <p class="text-slate-500 text-sm mb-5">
-          {{
-            searchTerm.trim()
-              ? `"${searchTerm}" için film bulunamadı.`
-              : 'İzleme listende film yok — bir filme bookmark ekle.'
-          }}
+          Filtreleri gevşet — bu kombinasyonda film bulunmuyor.
         </p>
         <button
           type="button"

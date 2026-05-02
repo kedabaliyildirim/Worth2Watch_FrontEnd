@@ -1,6 +1,5 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue'
-import { useStore } from 'vuex'
+import { onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   X,
@@ -13,16 +12,18 @@ import {
 import LiteYouTubeEmbed from 'vue-lite-youtube-embed'
 import 'vue-lite-youtube-embed/style.css'
 import Poster from '../components/Poster.vue'
+import { useMovie } from '../composables/useMovies.js'
 import { useWatchlist } from '../composables/useWatchlist.js'
 
-const store = useStore()
+const props = defineProps({ id: { type: [String, Number], required: true } })
+
 const router = useRouter()
+const movie = useMovie(props.id)
 const watchlist = useWatchlist()
 
-const movie = computed(() => store.state.currentMovie)
-
 function close() {
-  router.push('/')
+  if (window.history.length > 1) router.back()
+  else router.push('/')
 }
 
 function onKey(e) {
@@ -47,14 +48,6 @@ function ratingColor(score) {
   return 'text-red-400'
 }
 
-function tomatoColor(score) {
-  if (!score && score !== 0) return 'text-slate-400'
-  if (score >= 90) return 'text-emerald-400'
-  if (score >= 75) return 'text-yellow-400'
-  if (score >= 60) return 'text-orange-400'
-  return 'text-red-400'
-}
-
 function runtimeFormatted(min) {
   if (!min) return null
   const h = Math.floor(min / 60)
@@ -71,8 +64,8 @@ function runtimeFormatted(min) {
     <div
       class="absolute inset-0 bg-slate-950/55 backdrop-blur-xl pointer-events-none"
       :style="
-        movie?.backdropURL
-          ? `background-image: url('${movie.backdropURL}'); background-size: cover; background-position: center;`
+        movie?.backdrop
+          ? `background-image: url('${movie.backdrop}'); background-size: cover; background-position: center;`
           : ''
       "
     />
@@ -94,42 +87,54 @@ function runtimeFormatted(min) {
         <X :size="18" />
       </button>
 
-      <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 p-6 overflow-y-auto">
+      <div
+        class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 p-6 overflow-y-auto"
+      >
         <div class="flex justify-center md:justify-start">
           <div
             class="w-44 md:w-52 aspect-[2/3] rounded-xl overflow-hidden border border-slate-700/60 shadow-2xl shadow-black/40 flex-shrink-0"
           >
-            <Poster :src="movie.imageURL" :alt="movie.movieName" />
+            <Poster :src="movie.poster" :alt="movie.title" />
           </div>
         </div>
 
         <div class="min-w-0 space-y-5">
           <div>
             <h1 class="text-3xl font-extrabold text-white tracking-tight mb-2">
-              {{ movie.movieName }}
+              {{ movie.title }}
             </h1>
+            <div
+              v-if="movie.originalTitle && movie.originalTitle !== movie.title"
+              class="text-sm text-slate-500 italic mb-2"
+            >
+              {{ movie.originalTitle }}
+            </div>
             <div
               class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400"
             >
-              <span class="flex items-center gap-1.5">
+              <span v-if="movie.releaseDate" class="flex items-center gap-1.5">
                 <Calendar :size="14" />
-                {{ movie.movieReleaseDate }}
+                {{ movie.releaseDate }}
               </span>
-              <span v-if="runtimeFormatted(movie.movieRuntime)" class="flex items-center gap-1.5">
+              <span
+                v-if="runtimeFormatted(movie.runtime)"
+                class="flex items-center gap-1.5"
+              >
                 <Clock :size="14" />
-                {{ runtimeFormatted(movie.movieRuntime) }}
+                {{ runtimeFormatted(movie.runtime) }}
               </span>
-              <span v-if="movie.movieGenre" class="text-slate-500">·</span>
-              <span class="text-slate-300">{{ movie.movieGenre }}</span>
+              <span v-if="movie.genres && movie.genres.length" class="text-slate-500">·</span>
+              <span class="text-slate-300">{{ (movie.genres || []).join(' · ') }}</span>
             </div>
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
             <div
+              v-if="movie.imdbRating != null"
               class="flex items-center gap-2 px-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg"
             >
               <span
-                class="w-6 h-6 rounded bg-yellow-500 text-slate-900 text-[9px] font-extrabold flex items-center justify-center"
+                class="w-7 h-5 rounded bg-yellow-500 text-slate-900 text-[9px] font-extrabold flex items-center justify-center"
               >
                 IMDb
               </span>
@@ -138,16 +143,30 @@ function runtimeFormatted(min) {
                 :class="ratingColor(movie.imdbRating)"
               >
                 <Star :size="14" fill="currentColor" class="inline mr-1" />
-                {{ movie.imdbRating ? movie.imdbRating.toFixed(1) : '—' }}
+                {{ movie.imdbRating.toFixed(1) }}
+              </span>
+              <span
+                v-if="movie.imdbVotes"
+                class="text-[10px] font-mono text-slate-500"
+              >
+                {{ Intl.NumberFormat('tr-TR').format(movie.imdbVotes) }}
               </span>
             </div>
 
             <div
+              v-if="movie.tmdbRating != null"
               class="flex items-center gap-2 px-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg"
             >
               <span
                 class="w-6 h-6 rounded text-[8px] font-extrabold flex items-center justify-center text-slate-900"
-                style="background: linear-gradient(135deg, #0d253f 0%, #01b4e4 50%, #90cea1 100%)"
+                style="
+                  background: linear-gradient(
+                    135deg,
+                    #0d253f 0%,
+                    #01b4e4 50%,
+                    #90cea1 100%
+                  );
+                "
               >
                 T
               </span>
@@ -155,65 +174,51 @@ function runtimeFormatted(min) {
                 class="font-bold text-base"
                 :class="ratingColor(movie.tmdbRating)"
               >
-                {{ movie.tmdbRating ? movie.tmdbRating.toFixed(1) : '—' }}
+                {{ movie.tmdbRating.toFixed(1) }}
               </span>
-            </div>
-
-            <div
-              class="flex items-center gap-2 px-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg"
-            >
-              <span class="text-base">🍅</span>
               <span
-                class="font-bold text-base"
-                :class="tomatoColor(movie.rottenTomatoesRating)"
+                v-if="movie.tmdbVotes"
+                class="text-[10px] font-mono text-slate-500"
               >
-                {{
-                  movie.rottenTomatoesRating != null
-                    ? `${movie.rottenTomatoesRating}%`
-                    : '—'
-                }}
+                {{ Intl.NumberFormat('tr-TR').format(movie.tmdbVotes) }}
               </span>
             </div>
 
             <button
               type="button"
-              :aria-pressed="watchlist.has(movie.movieName)"
+              :aria-pressed="watchlist.has(movie.tmdbId)"
               class="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all"
               :class="
-                watchlist.has(movie.movieName)
+                watchlist.has(movie.tmdbId)
                   ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_18px_rgba(99,102,241,0.35)]'
                   : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
               "
-              @click="watchlist.toggle(movie.movieName)"
+              @click="watchlist.toggle(movie.tmdbId)"
             >
               <Bookmark
                 :size="14"
-                :fill="watchlist.has(movie.movieName) ? 'currentColor' : 'none'"
+                :fill="watchlist.has(movie.tmdbId) ? 'currentColor' : 'none'"
               />
-              {{
-                watchlist.has(movie.movieName)
-                  ? 'Listemde'
-                  : 'Listeme ekle'
-              }}
+              {{ watchlist.has(movie.tmdbId) ? 'Listemde' : 'Listeme ekle' }}
             </button>
           </div>
 
           <div
-            v-if="movie.movieProviders && movie.movieProviders.length"
+            v-if="movie.providers && movie.providers.length"
             class="flex items-center gap-3 flex-wrap"
           >
             <span
               class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
             >
-              Nerede izlenir
+              Türkiye'de nerede izlenir
             </span>
             <div class="flex items-center gap-2">
               <img
-                v-for="p in movie.movieProviders"
-                :key="p.provider_id"
-                :src="`https://image.tmdb.org/t/p/original${p.logo_path}`"
-                :alt="p.provider_name"
-                :title="p.provider_name"
+                v-for="p in movie.providers"
+                :key="p.id"
+                :src="`https://image.tmdb.org/t/p/original${p.logo}`"
+                :alt="p.name"
+                :title="p.name"
                 class="w-9 h-9 rounded-lg object-cover ring-1 ring-slate-700/60"
                 loading="lazy"
               />
@@ -231,7 +236,7 @@ function runtimeFormatted(min) {
             </p>
           </div>
 
-          <div v-if="movie.youtubeId" class="space-y-2">
+          <div v-if="movie.trailerYoutubeId" class="space-y-2">
             <span
               class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
             >
@@ -240,19 +245,20 @@ function runtimeFormatted(min) {
             <div
               class="rounded-xl overflow-hidden border border-slate-700/60 bg-black"
             >
-              <LiteYouTubeEmbed :id="movie.youtubeId" :title="movie.movieName" />
+              <LiteYouTubeEmbed
+                :id="movie.trailerYoutubeId"
+                :title="movie.title"
+              />
             </div>
+            <a
+              :href="`https://www.youtube.com/watch?v=${movie.trailerYoutubeId}`"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-300 transition-colors"
+            >
+              YouTube'da aç <ExternalLink :size="12" />
+            </a>
           </div>
-
-          <a
-            v-if="movie.youtubeId"
-            :href="`https://www.youtube.com/watch?v=${movie.youtubeId}`"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-300 transition-colors"
-          >
-            YouTube'da aç <ExternalLink :size="12" />
-          </a>
         </div>
       </div>
     </div>
@@ -262,7 +268,7 @@ function runtimeFormatted(min) {
       class="relative px-6 py-12 text-center text-slate-400"
       @click.stop
     >
-      Film yükleniyor…
+      Film bulunamadı.
     </div>
   </div>
 </template>
