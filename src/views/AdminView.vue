@@ -1,165 +1,108 @@
-<template>
-  <div class="mainAdmin">
-    <div class="login-box">
-      <form>
-        <div class="user-box">
-          <input v-model="email" type="text" name="" required="" />
-          <label>Username</label>
-        </div>
-        <div class="user-box">
-          <input v-model="password" type="password" name="" required="" />
-          <label>Password</label>
-        </div>
-        <center @click="login">
-          <a >
-            SEND
-            <span></span>
-          </a>
-        </center>
-      </form>
-    </div>
+<script setup>
+import { ref, computed } from 'vue'
+import { useStore } from 'vuex'
+import { Lock, Mail, ShieldCheck } from 'lucide-vue-next'
+import AdminComponent from '../components/AdminComponent.vue'
 
-    <!-- <form v-if="!loginState" class="loginForm" @submit.prevent="login">
-      <label for="email">Email:</label>
-      <input type="email" id="email" v-model="email" required />
-      <label for="password">Password:</label>
-      <input type="password" id="password" v-model="password" required />
-      <button type="submit" login>Login</button>
-    </form> -->
-    <adminComponent v-if="loginState"> </adminComponent>
-  </div>
-</template>
+const store = useStore()
+const email = ref('')
+const password = ref('')
+const submitting = ref(false)
 
-<script>
-import adminComponent from '@/components/AdminComponent.vue'
-export default {
-  components: {
-    adminComponent
-  },
-  name: 'AdminView',
-  data() {
-    return {
-      email: '',
-      password: ''
-    }
-  },
-  methods: {
-    async login() {
-      const payload = {
-        email: this.email,
-        password: this.password
-      }
-      this.$store.dispatch('login', payload)
-    }
-  },
-  computed: {
-    loginState() {
-      return this.$store.getters.getLoginState
-    },
-    csrfState() {
-      this.$store.getters.getCsrftoken
-      return this.$store.getters.getCsrftoken
-    }
+const loginState = computed(() => store.getters.getLoginState)
+
+async function login() {
+  submitting.value = true
+  try {
+    await store.dispatch('login', {
+      email: email.value,
+      password: password.value,
+    })
+  } finally {
+    submitting.value = false
   }
 }
 </script>
 
-<style>
-.login-box {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 400px;
-  padding: 40px;
-  transform: translate(-50%, -50%);
-  background: rgba(24, 20, 20, 0.987);
-  box-sizing: border-box;
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.6);
-  border-radius: 10px;
-}
+<template>
+  <main class="max-w-7xl mx-auto px-4 py-12">
+    <div
+      v-if="!loginState"
+      class="max-w-md mx-auto mt-8 bg-slate-900/60 border border-slate-700/60 rounded-2xl p-8 shadow-2xl shadow-black/40"
+    >
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center"
+        >
+          <ShieldCheck class="text-indigo-300" :size="20" />
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold text-white">Admin Girişi</h1>
+          <p class="text-xs text-slate-500">Sadece yetkili kullanıcılar</p>
+        </div>
+      </div>
 
-.login-box .user-box {
-  position: relative;
-}
+      <form class="space-y-4" @submit.prevent="login">
+        <div>
+          <label
+            class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+            for="admin-email"
+          >
+            E-posta
+          </label>
+          <div class="relative mt-1">
+            <Mail
+              :size="14"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            />
+            <input
+              id="admin-email"
+              v-model="email"
+              type="email"
+              required
+              autocomplete="username"
+              class="w-full pl-9 pr-3 py-2.5 bg-slate-950/60 border border-slate-700/60 focus:border-indigo-500/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-200 placeholder:text-slate-500 rounded-lg text-sm transition-colors"
+            />
+          </div>
+        </div>
 
-.login-box .user-box input {
-  width: 100%;
-  padding: 10px 0;
-  font-size: 16px;
-  color: #fff;
-  margin-bottom: 30px;
-  border: none;
-  border-bottom: 1px solid #fff;
-  outline: none;
-  background: transparent;
-}
+        <div>
+          <label
+            class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+            for="admin-password"
+          >
+            Şifre
+          </label>
+          <div class="relative mt-1">
+            <Lock
+              :size="14"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            />
+            <input
+              id="admin-password"
+              v-model="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              class="w-full pl-9 pr-3 py-2.5 bg-slate-950/60 border border-slate-700/60 focus:border-indigo-500/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-200 placeholder:text-slate-500 rounded-lg text-sm transition-colors"
+            />
+          </div>
+        </div>
 
-.login-box .user-box label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 10px 0;
-  font-size: 16px;
-  color: #fff;
-  pointer-events: none;
-  transition: 0.5s;
-}
+        <button
+          type="submit"
+          :disabled="submitting"
+          class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold rounded-lg transition-colors shadow-lg shadow-indigo-500/20"
+        >
+          {{ submitting ? 'Bağlanıyor…' : 'Giriş Yap' }}
+        </button>
 
-.login-box .user-box input:focus ~ label,
-.login-box .user-box input:valid ~ label {
-  top: -20px;
-  left: 0;
-  color: #bdb8b8;
-  font-size: 12px;
-}
+        <p class="text-center text-[11px] text-slate-500">
+          Backend bağlı değilse bu form sessizce başarısız olur.
+        </p>
+      </form>
+    </div>
 
-.login-box form a {
-  position: relative;
-  display: inline-block;
-  padding: 10px 20px;
-  color: #ffffff;
-  font-size: 16px;
-  text-decoration: none;
-  text-transform: uppercase;
-  overflow: hidden;
-  transition: 0.5s;
-  margin-top: 40px;
-  letter-spacing: 4px;
-}
-
-.login-box a:hover {
-  background: #03f40f;
-  color: #fff;
-  border-radius: 5px;
-  box-shadow:
-    0 0 5px #03f40f,
-    0 0 25px #03f40f,
-    0 0 50px #03f40f,
-    0 0 100px #03f40f;
-}
-
-.login-box a span {
-  position: absolute;
-  display: block;
-}
-
-@keyframes btn-anim1 {
-  0% {
-    left: -100%;
-  }
-
-  50%,
-  100% {
-    left: 100%;
-  }
-}
-
-.login-box a span:nth-child(1) {
-  bottom: 2px;
-  left: -100%;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #03f40f);
-  animation: btn-anim1 2s linear infinite;
-}
-</style>
+    <AdminComponent v-else />
+  </main>
+</template>

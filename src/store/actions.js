@@ -1,72 +1,66 @@
 /* eslint-disable no-unused-vars */
 import axios from 'axios';
 import './getters.js';
-// jshint ignore:start
-let url;
-const googleUrl =
-    import.meta.env.VITE_GOOGLE_SEARCH_URI
-const googleApiKey =
-    import.meta.env.VITE_GOOGLE_API_KEY
-url =
-    import.meta.env.VITE_API_URL
-// jshint ignore:end
+import {
+    MOCK_MOVIES,
+    MOCK_TOTAL_PAGES,
+    pagedMockMovies,
+    topTenMockMovies,
+} from '../lib/mockMovies.js';
 
-//const localURL = url;
-const localURL = 'http://127.0.0.1:8000/';
+const googleUrl = import.meta.env.VITE_GOOGLE_SEARCH_URI;
+const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+
+// Backend hâlâ ayağa kaldırılmadığı (veya farklı bir host'ta olduğu) için
+// `:8000` cevap vermezse mock data ile devam ediyoruz. Üretim build'inde
+// `VITE_API_URL` set edilirse oraya proxy'lenir.
+const localURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/';
 
 export default {
     setAuthToken(context, payload) {
         context.commit('setAuthToken', payload);
     },
     async authenticate(context, payload) {
-        await axios({
-            url: localURL + "getAuth",
-            method: "post",
-            withCredentials: true,
-            data: payload
-        }).then((response) => {
-            if (response.data.status === "ok") {
-                context.commit('setLoginState', true);
-            } else {
-                context.commit('setLoginState', false);
-            }
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+        try {
+            const res = await axios.post(localURL + 'getAuth', payload, {
+                withCredentials: true,
+            });
+            context.commit(
+                'setLoginState',
+                res.data.status === 'ok'
+            );
+        } catch (error) {
+            // Backend yok / token geçersiz — sessizce logged-out kal
+            context.commit('setLoginState', false);
+        }
     },
 
     async getMovieData(context, payload) {
-
-
-        // Clear existing movie data
         context.commit('clearMovieData');
 
-        // Fetch total page count
-        await axios({
-            url: localURL + 'totalpages',
-            method: "GET"
-        }).then((response) => {
-            context.commit('setTotalPageCount', response.data);
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+        try {
+            const totalRes = await axios.get(localURL + 'totalpages');
+            context.commit('setTotalPageCount', totalRes.data);
 
-        // Fetch new movie data
-        await axios({
-            url: localURL + 'allmovies',
-            method: "POST",
-            data: payload,
-            withCredentials: true,
-            headers: {
-                'X-CSRFToken': context.state.csrfToken,
-                'Content-Type': 'application/json', // Add this line
-            }
-        }).then((response) => {
-            context.commit('setMovieData', response.data);
-            return response;
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+            const moviesRes = await axios.post(localURL + 'allmovies', payload, {
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+            context.commit('setMovieData', moviesRes.data);
+        } catch (error) {
+            // Backend yok → mock'a düş
+            context.commit('setTotalPageCount', MOCK_TOTAL_PAGES);
+            context.commit(
+                'setMovieData',
+                pagedMockMovies({
+                    page: payload?.page,
+                    pageSize: payload?.page_size,
+                })
+            );
+        }
     },
 
     async login(context, payload) {
@@ -141,24 +135,20 @@ export default {
         });
     },
 
-    //Setting current movie to be displayed
     async setMovie(context, payload) {
-        // if logged in add auth token from cookies and make a request to server with
-        // payload to pull movie to database 
-        await axios({
-            url: localURL + "movies/getmovie",
-            method: "POST",
-            data: payload,
-            withCredentials: true,
-            headers: {
-                'X-CSRFToken': context.state.csrfToken,
-                'Content-Type': 'application/json', // Add this line
-            }
-        }).then((response) => {
-            context.commit('setCurrentMovie', response.data);
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+        try {
+            const res = await axios.post(localURL + 'movies/getmovie', payload, {
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+            context.commit('setCurrentMovie', res.data);
+        } catch (error) {
+            const match = MOCK_MOVIES.find((m) => m.movieName === payload);
+            if (match) context.commit('setCurrentMovie', match);
+        }
     },
 
 
@@ -422,20 +412,19 @@ export default {
         }
     },
 
-    getTopTen(context) {
-        axios({
-            url: localURL + "movies/topten",
-            method: "GET",
-            withCredentials: true,
-            headers: {
-                'X-CSRFToken': context.state.csrfToken,
-                'Content-Type': 'application/json', // Add this line
-            }
-        }).then((response) => {
-            context.commit('setTopTenMovies', response.data);
-        }).catch((error) => {
-            console.error('Error in login request:', error);
-        });
+    async getTopTen(context) {
+        try {
+            const res = await axios.get(localURL + 'movies/topten', {
+                withCredentials: true,
+                headers: {
+                    'X-CSRFToken': context.state.csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+            context.commit('setTopTenMovies', res.data);
+        } catch (error) {
+            context.commit('setTopTenMovies', topTenMockMovies());
+        }
     },
     pullComments(context, payload) {
         let authCookie = null;
