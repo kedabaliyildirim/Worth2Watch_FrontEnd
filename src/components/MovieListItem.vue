@@ -1,6 +1,15 @@
 <script setup>
 import { computed } from 'vue'
-import { Star, Clock, Bookmark, Tv, Film } from 'lucide-vue-next'
+import {
+  Star,
+  Clock,
+  Bookmark,
+  Tv,
+  Film,
+  ThumbsUp,
+  ThumbsDown,
+  HelpCircle,
+} from 'lucide-vue-next'
 import Poster from './Poster.vue'
 import EpisodeRatingHeatmap from './EpisodeRatingHeatmap.vue'
 
@@ -45,6 +54,36 @@ function ratingColor(score) {
   if (score >= 6) return 'text-orange-400'
   return 'text-red-400'
 }
+
+const verdict = computed(() => {
+  const v = props.movie.worthVerdict
+  const score = props.movie.worthScore
+  if (v === 'izlemeye_değer') {
+    return {
+      label: 'İzle',
+      icon: ThumbsUp,
+      classes: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      score,
+    }
+  }
+  if (v === 'tartışmalı') {
+    return {
+      label: 'Bölüyor',
+      icon: HelpCircle,
+      classes: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+      score,
+    }
+  }
+  if (v === 'izleme') {
+    return {
+      label: 'Pas geç',
+      icon: ThumbsDown,
+      classes: 'bg-red-500/20 text-red-300 border-red-500/40',
+      score,
+    }
+  }
+  return null
+})
 
 function onBookmarkClick(e) {
   e.stopPropagation()
@@ -139,6 +178,23 @@ function onBookmarkClick(e) {
           <span class="w-1 h-1 bg-slate-600 rounded-full" />
           <span class="text-violet-400 font-semibold text-xs">
             {{ seasonsLine }}
+          </span>
+        </template>
+        <template v-if="verdict">
+          <span class="w-1 h-1 bg-slate-600 rounded-full" />
+          <span
+            :title="movie.worthSummary"
+            class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border"
+            :class="verdict.classes"
+          >
+            <component :is="verdict.icon" :size="10" />
+            {{ verdict.label }}
+            <span
+              v-if="verdict.score != null"
+              class="font-mono opacity-80"
+            >
+              · {{ verdict.score }}
+            </span>
           </span>
         </template>
       </div>

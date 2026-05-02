@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import {
   X,
   Star,
@@ -11,6 +12,10 @@ import {
   Tv,
   Film,
   Layers,
+  ThumbsUp,
+  ThumbsDown,
+  HelpCircle,
+  MessageCircle,
 } from 'lucide-vue-next'
 import LiteYouTubeEmbed from 'vue-lite-youtube-embed'
 import 'vue-lite-youtube-embed/style.css'
@@ -54,6 +59,43 @@ function ratingColor(score) {
   if (score >= 6) return 'text-orange-400'
   return 'text-red-400'
 }
+
+const verdict = computed(() => {
+  const m = movie.value
+  if (!m) return null
+  const v = m.worthVerdict
+  if (v === 'izlemeye_değer') {
+    return {
+      label: 'İzlemeye değer',
+      icon: ThumbsUp,
+      panel:
+        'bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border-emerald-500/40',
+      pill: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      score: m.worthScore,
+    }
+  }
+  if (v === 'tartışmalı') {
+    return {
+      label: 'Tartışmalı',
+      icon: HelpCircle,
+      panel:
+        'bg-gradient-to-br from-yellow-500/15 to-yellow-500/5 border-yellow-500/40',
+      pill: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+      score: m.worthScore,
+    }
+  }
+  if (v === 'izleme') {
+    return {
+      label: 'İzlemeye değmez',
+      icon: ThumbsDown,
+      panel:
+        'bg-gradient-to-br from-red-500/15 to-red-500/5 border-red-500/40',
+      pill: 'bg-red-500/20 text-red-300 border-red-500/40',
+      score: m.worthScore,
+    }
+  }
+  return null
+})
 
 function runtimeFormatted(min, isTv) {
   if (!min) return null
@@ -263,6 +305,92 @@ function runtimeFormatted(min, isTv) {
                 loading="lazy"
               />
             </div>
+          </div>
+
+          <div
+            v-if="verdict"
+            :class="verdict.panel"
+            class="rounded-xl border p-4 space-y-3"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <component :is="verdict.icon" :size="18" class="text-current" />
+                <span class="text-sm font-extrabold uppercase tracking-wide">
+                  {{ verdict.label }}
+                </span>
+                <span
+                  class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                  :class="verdict.pill"
+                >
+                  {{ verdict.score }}/100
+                </span>
+              </div>
+              <span
+                v-if="movie.worthSourceCount"
+                class="text-[10px] font-mono text-slate-400 flex items-center gap-1"
+                :title="`${movie.worthSourceCount} Reddit yorumundan özet`"
+              >
+                <MessageCircle :size="10" />
+                {{ movie.worthSourceCount }} yorum
+              </span>
+            </div>
+
+            <p class="text-sm text-slate-200 leading-relaxed">
+              {{ movie.worthSummary }}
+            </p>
+
+            <div
+              v-if="
+                (movie.worthHighlights && movie.worthHighlights.length) ||
+                (movie.worthLowlights && movie.worthLowlights.length)
+              "
+              class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-current/15"
+            >
+              <div
+                v-if="movie.worthHighlights && movie.worthHighlights.length"
+                class="space-y-1.5"
+              >
+                <span
+                  class="text-[10px] font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1"
+                >
+                  <ThumbsUp :size="10" /> Beğenilenler
+                </span>
+                <ul class="space-y-1">
+                  <li
+                    v-for="h in movie.worthHighlights"
+                    :key="h"
+                    class="text-xs text-slate-300 flex items-start gap-1.5"
+                  >
+                    <span class="text-emerald-400 mt-0.5">+</span>
+                    <span>{{ h }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div
+                v-if="movie.worthLowlights && movie.worthLowlights.length"
+                class="space-y-1.5"
+              >
+                <span
+                  class="text-[10px] font-bold uppercase tracking-widest text-rose-400 flex items-center gap-1"
+                >
+                  <ThumbsDown :size="10" /> Eleştirilenler
+                </span>
+                <ul class="space-y-1">
+                  <li
+                    v-for="l in movie.worthLowlights"
+                    :key="l"
+                    class="text-xs text-slate-300 flex items-start gap-1.5"
+                  >
+                    <span class="text-rose-400 mt-0.5">−</span>
+                    <span>{{ l }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <p class="text-[10px] font-mono text-slate-500 pt-1">
+              Reddit r/movies + r/television tartışmalarından Gemini özeti
+            </p>
           </div>
 
           <div
