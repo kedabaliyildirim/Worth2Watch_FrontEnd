@@ -11,6 +11,9 @@ import {
   Sparkles,
   X,
   Filter as FilterIcon,
+  Film,
+  Tv,
+  Layers,
 } from 'lucide-vue-next'
 import MovieListItem from './MovieListItem.vue'
 import SkeletonRow from './SkeletonRow.vue'
@@ -25,6 +28,7 @@ const searchTerm = ref('')
 const sortOption = ref('imdbRating')
 const sortOrder = ref('desc')
 const onlyWatchlist = ref(false)
+const mediaType = ref('all') // 'all' | 'movie' | 'tv'
 const selectedGenres = ref([])
 const selectedProviders = ref([])
 const yearFrom = ref(null)
@@ -82,6 +86,9 @@ const yearBounds = computed(() => {
 const filtered = computed(() => {
   if (!movies.value.length) return []
   let res = movies.value
+  if (mediaType.value !== 'all') {
+    res = res.filter((m) => m.mediaType === mediaType.value)
+  }
   const term = searchTerm.value.trim().toLowerCase()
   if (term) {
     res = res.filter(
@@ -109,7 +116,9 @@ const filtered = computed(() => {
     res = res.filter((m) => parseInt(m.year, 10) <= yearTo.value)
   }
   if (onlyWatchlist.value) {
-    res = res.filter((m) => watchlist.has(m.tmdbId))
+    res = res.filter((m) =>
+      watchlist.has(`${m.mediaType}-${m.tmdbId}`)
+    )
   }
 
   const dir = sortOrder.value === 'asc' ? 1 : -1
@@ -141,6 +150,7 @@ const hasActiveFilters = computed(
   () =>
     !!searchTerm.value ||
     onlyWatchlist.value ||
+    mediaType.value !== 'all' ||
     selectedGenres.value.length > 0 ||
     selectedProviders.value.length > 0 ||
     yearFrom.value !== null ||
@@ -148,16 +158,22 @@ const hasActiveFilters = computed(
 )
 
 function selectMovie(movie) {
-  router.push({ name: 'movie', params: { id: movie.tmdbId } })
+  router.push({ name: 'movie', params: { id: movie.tmdbId, mediaType: movie.mediaType } })
 }
 
 function clearFilters() {
   searchTerm.value = ''
   onlyWatchlist.value = false
+  mediaType.value = 'all'
   selectedGenres.value = []
   selectedProviders.value = []
   yearFrom.value = null
   yearTo.value = null
+}
+
+function setMediaType(t) {
+  mediaType.value = t
+  page.value = 1
 }
 
 function toggleGenre(g) {
@@ -256,6 +272,50 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           "
         />
       </button>
+
+      <div
+        class="flex items-center gap-1 p-1 bg-slate-800/40 border border-slate-700/40 rounded-lg"
+      >
+        <button
+          type="button"
+          :aria-pressed="mediaType === 'all'"
+          class="px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
+          :class="
+            mediaType === 'all'
+              ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
+              : 'text-slate-400 hover:text-white'
+          "
+          @click="setMediaType('all')"
+        >
+          Tümü
+        </button>
+        <button
+          type="button"
+          :aria-pressed="mediaType === 'movie'"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
+          :class="
+            mediaType === 'movie'
+              ? 'bg-cyan-500 text-slate-900 shadow-md shadow-cyan-500/30'
+              : 'text-slate-400 hover:text-white'
+          "
+          @click="setMediaType('movie')"
+        >
+          <Film :size="12" /> Film
+        </button>
+        <button
+          type="button"
+          :aria-pressed="mediaType === 'tv'"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
+          :class="
+            mediaType === 'tv'
+              ? 'bg-violet-500 text-white shadow-md shadow-violet-500/30'
+              : 'text-slate-400 hover:text-white'
+          "
+          @click="setMediaType('tv')"
+        >
+          <Tv :size="12" /> Dizi
+        </button>
+      </div>
 
       <button
         v-if="watchlist.count.value > 0"

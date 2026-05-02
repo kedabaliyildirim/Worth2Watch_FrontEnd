@@ -12,9 +12,7 @@ async function loadOnce() {
   bootstrapped = true
   loading.value = true
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}movies.json`, {
-      cache: 'force-cache',
-    })
+    const res = await fetch(`${import.meta.env.BASE_URL}movies.json`)
     if (!res.ok) throw new Error(`movies.json: ${res.status}`)
     movies.value = await res.json()
   } catch (err) {
@@ -34,17 +32,19 @@ export function useMovies() {
   }
 }
 
-export function useMovie(tmdbIdOrTitle) {
+export function useMovie(tmdbId, mediaType) {
   loadOnce()
   return computed(() => {
-    if (!tmdbIdOrTitle) return null
-    const needle = String(tmdbIdOrTitle).toLowerCase()
-    return (
-      movies.value.find(
-        (m) => String(m.tmdbId) === String(tmdbIdOrTitle)
-      ) ||
-      movies.value.find((m) => m.title?.toLowerCase() === needle) ||
-      null
-    )
+    if (tmdbId == null) return null
+    const idStr = String(tmdbId)
+    if (mediaType) {
+      const exact = movies.value.find(
+        (m) => String(m.tmdbId) === idStr && m.mediaType === mediaType
+      )
+      if (exact) return exact
+    }
+    // Movies and TV shows can share TMDB ids since they're different
+    // namespaces; without a hint we fall back to the first match.
+    return movies.value.find((m) => String(m.tmdbId) === idStr) || null
   })
 }

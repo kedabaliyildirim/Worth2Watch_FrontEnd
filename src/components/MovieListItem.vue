@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import { Star, Clock, Bookmark } from 'lucide-vue-next'
+import { Star, Clock, Bookmark, Tv, Film } from 'lucide-vue-next'
 import Poster from './Poster.vue'
+import EpisodeRatingHeatmap from './EpisodeRatingHeatmap.vue'
 
 const props = defineProps({
   movie: { type: Object, required: true },
@@ -11,12 +12,24 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'toggleWatchlist'])
 
+const isTv = computed(() => props.movie.mediaType === 'tv')
+
 const runtime = computed(() => {
   const r = props.movie.runtime
   if (!r) return null
+  if (isTv.value) return `~${r}d/böl`
   const h = Math.floor(r / 60)
   const m = r % 60
   return h > 0 ? `${h}s ${m}d` : `${m}d`
+})
+
+const seasonsLine = computed(() => {
+  if (!isTv.value) return null
+  const s = props.movie.seasons
+  const e = props.movie.episodes
+  if (!s) return null
+  const seasonStr = `${s} sezon`
+  return e ? `${seasonStr} · ${e} bölüm` : seasonStr
 })
 
 const genreLine = computed(() => {
@@ -35,13 +48,13 @@ function ratingColor(score) {
 
 function onBookmarkClick(e) {
   e.stopPropagation()
-  emit('toggleWatchlist', props.movie.tmdbId)
+  emit('toggleWatchlist', `${props.movie.mediaType}-${props.movie.tmdbId}`)
 }
 </script>
 
 <template>
   <div
-    class="group relative flex items-center gap-4 p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-indigo-500/50 rounded-xl transition-[colors,transform,box-shadow] duration-200 cursor-pointer mb-3 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(99,102,241,0.4)]"
+    class="group relative flex items-center gap-4 p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/50 hover:border-indigo-500/50 rounded-xl transition-[colors,transform,box-shadow] duration-200 cursor-pointer mb-3 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(168,85,247,0.4)]"
     @click="emit('select', movie)"
   >
     <button
@@ -72,10 +85,26 @@ function onBookmarkClick(e) {
       style="will-change: transform"
     >
       <Poster :src="movie.poster" :alt="movie.title" />
+      <span
+        class="absolute top-1 left-1 px-1 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider backdrop-blur-md"
+        :class="
+          isTv
+            ? 'bg-violet-500/85 text-white'
+            : 'bg-cyan-500/85 text-slate-900'
+        "
+      >
+        {{ isTv ? 'Dizi' : 'Film' }}
+      </span>
     </div>
 
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 mb-1">
+        <component
+          :is="isTv ? Tv : Film"
+          :size="14"
+          :class="isTv ? 'text-violet-400' : 'text-cyan-400'"
+          class="flex-shrink-0"
+        />
         <h3
           class="text-lg font-bold text-white truncate group-hover:text-indigo-300 transition-colors duration-300"
         >
@@ -88,7 +117,10 @@ function onBookmarkClick(e) {
       <div
         class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400"
       >
-        <span class="flex items-center gap-1 font-semibold" :class="ratingColor(movie.imdbRating)">
+        <span
+          class="flex items-center gap-1 font-semibold"
+          :class="ratingColor(movie.imdbRating)"
+        >
           <Star :size="14" fill="currentColor" />
           {{ movie.imdbRating ? movie.imdbRating.toFixed(1) : '—' }}
         </span>
@@ -101,6 +133,12 @@ function onBookmarkClick(e) {
           <span class="flex items-center gap-1 text-slate-400">
             <Clock :size="12" />
             {{ runtime }}
+          </span>
+        </template>
+        <template v-if="seasonsLine">
+          <span class="w-1 h-1 bg-slate-600 rounded-full" />
+          <span class="text-violet-400 font-semibold text-xs">
+            {{ seasonsLine }}
           </span>
         </template>
       </div>
@@ -129,8 +167,15 @@ function onBookmarkClick(e) {
         </span>
       </div>
 
+      <!-- TV: episode heatmap; movies: provider strip in same column -->
       <div
-        v-if="movie.providers && movie.providers.length"
+        v-if="isTv && movie.episodeRatings && movie.episodeRatings.length"
+        class="w-44 max-h-20 overflow-hidden"
+      >
+        <EpisodeRatingHeatmap :ratings="movie.episodeRatings.slice(0, 60)" compact />
+      </div>
+      <div
+        v-else-if="movie.providers && movie.providers.length"
         class="flex items-center gap-1.5 w-32"
       >
         <img

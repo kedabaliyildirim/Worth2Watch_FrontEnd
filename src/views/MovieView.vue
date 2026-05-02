@@ -8,17 +8,24 @@ import {
   Calendar,
   Bookmark,
   ExternalLink,
+  Tv,
+  Film,
+  Layers,
 } from 'lucide-vue-next'
 import LiteYouTubeEmbed from 'vue-lite-youtube-embed'
 import 'vue-lite-youtube-embed/style.css'
 import Poster from '../components/Poster.vue'
+import EpisodeRatingHeatmap from '../components/EpisodeRatingHeatmap.vue'
 import { useMovie } from '../composables/useMovies.js'
 import { useWatchlist } from '../composables/useWatchlist.js'
 
-const props = defineProps({ id: { type: [String, Number], required: true } })
+const props = defineProps({
+  id: { type: [String, Number], required: true },
+  mediaType: { type: String, default: 'movie' },
+})
 
 const router = useRouter()
-const movie = useMovie(props.id)
+const movie = useMovie(props.id, props.mediaType)
 const watchlist = useWatchlist()
 
 function close() {
@@ -48,8 +55,9 @@ function ratingColor(score) {
   return 'text-red-400'
 }
 
-function runtimeFormatted(min) {
+function runtimeFormatted(min, isTv) {
   if (!min) return null
+  if (isTv) return `~${min} dk / bölüm`
   const h = Math.floor(min / 60)
   const m = min % 60
   return h > 0 ? `${h}s ${m}d` : `${m}d`
@@ -100,6 +108,30 @@ function runtimeFormatted(min) {
 
         <div class="min-w-0 space-y-5">
           <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span
+                class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1"
+                :class="
+                  movie.mediaType === 'tv'
+                    ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40'
+                    : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                "
+              >
+                <component
+                  :is="movie.mediaType === 'tv' ? Tv : Film"
+                  :size="10"
+                />
+                {{ movie.mediaType === 'tv' ? 'Dizi' : 'Film' }}
+              </span>
+              <span
+                v-if="movie.mediaType === 'tv' && movie.seasons"
+                class="text-[10px] font-mono text-slate-400 flex items-center gap-1"
+              >
+                <Layers :size="10" />
+                {{ movie.seasons }} sezon
+                <template v-if="movie.episodes">· {{ movie.episodes }} bölüm</template>
+              </span>
+            </div>
             <h1 class="text-3xl font-extrabold text-white tracking-tight mb-2">
               {{ movie.title }}
             </h1>
@@ -117,11 +149,11 @@ function runtimeFormatted(min) {
                 {{ movie.releaseDate }}
               </span>
               <span
-                v-if="runtimeFormatted(movie.runtime)"
+                v-if="runtimeFormatted(movie.runtime, movie.mediaType === 'tv')"
                 class="flex items-center gap-1.5"
               >
                 <Clock :size="14" />
-                {{ runtimeFormatted(movie.runtime) }}
+                {{ runtimeFormatted(movie.runtime, movie.mediaType === 'tv') }}
               </span>
               <span v-if="movie.genres && movie.genres.length" class="text-slate-500">·</span>
               <span class="text-slate-300">{{ (movie.genres || []).join(' · ') }}</span>
@@ -186,20 +218,28 @@ function runtimeFormatted(min) {
 
             <button
               type="button"
-              :aria-pressed="watchlist.has(movie.tmdbId)"
+              :aria-pressed="watchlist.has(`${movie.mediaType}-${movie.tmdbId}`)"
               class="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all"
               :class="
-                watchlist.has(movie.tmdbId)
+                watchlist.has(`${movie.mediaType}-${movie.tmdbId}`)
                   ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_18px_rgba(99,102,241,0.35)]'
                   : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
               "
-              @click="watchlist.toggle(movie.tmdbId)"
+              @click="watchlist.toggle(`${movie.mediaType}-${movie.tmdbId}`)"
             >
               <Bookmark
                 :size="14"
-                :fill="watchlist.has(movie.tmdbId) ? 'currentColor' : 'none'"
+                :fill="
+                  watchlist.has(`${movie.mediaType}-${movie.tmdbId}`)
+                    ? 'currentColor'
+                    : 'none'
+                "
               />
-              {{ watchlist.has(movie.tmdbId) ? 'Listemde' : 'Listeme ekle' }}
+              {{
+                watchlist.has(`${movie.mediaType}-${movie.tmdbId}`)
+                  ? 'Listemde'
+                  : 'Listeme ekle'
+              }}
             </button>
           </div>
 
@@ -222,6 +262,36 @@ function runtimeFormatted(min) {
                 class="w-9 h-9 rounded-lg object-cover ring-1 ring-slate-700/60"
                 loading="lazy"
               />
+            </div>
+          </div>
+
+          <div
+            v-if="
+              movie.mediaType === 'tv' &&
+              movie.episodeRatings &&
+              movie.episodeRatings.length
+            "
+            class="space-y-2"
+          >
+            <div class="flex items-center justify-between">
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+              >
+                Bölüm puanları
+              </span>
+              <span
+                v-if="movie.avgEpisodeRating"
+                class="text-[10px] font-mono text-slate-400"
+              >
+                ortalama
+                <span class="font-bold text-emerald-400">
+                  {{ movie.avgEpisodeRating.toFixed(1) }}
+                </span>
+                · {{ movie.episodeRatings.length }} bölüm
+              </span>
+            </div>
+            <div class="bg-slate-950/40 border border-slate-700/40 rounded-lg p-3 max-h-72 overflow-y-auto">
+              <EpisodeRatingHeatmap :ratings="movie.episodeRatings" />
             </div>
           </div>
 
