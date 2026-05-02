@@ -23,7 +23,7 @@ import sys
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,9 +41,16 @@ if not GEMINI_KEY:
 
 UA = "Worth2Watch-research/0.1 (single-user; non-commercial)"
 
-# Free tier: 15 RPM. We pad to 4.5s between calls so 60s window holds 13.
-GEMINI_MIN_INTERVAL_S = 4.5
+# Gemini 2.5 Flash on the free tier — typically 10 RPM / 250 RPD per
+# project. We pad to 7s between calls (~8 RPM) to leave headroom for
+# transient retries inside the per-minute bucket. If 2.5-flash gets
+# exhausted mid-run, fall back to gemini-2.5-flash-lite (separate
+# quota, lower quality but acceptable for the verdict format).
+GEMINI_MODEL_PRIMARY = "gemini-2.5-flash"
+GEMINI_MODEL_FALLBACK = "gemini-2.5-flash-lite"
+GEMINI_MIN_INTERVAL_S = 7.0
 _last_gemini_t = [0.0]
+_active_model = [GEMINI_MODEL_PRIMARY]
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +147,14 @@ def harvest_reddit(item: dict, max_threads: int = 4, max_comments_per: int = 8) 
     comments: list[str] = []
     for permalink in threads[:max_threads]:
         time.sleep(1.0)  # be polite
-        thread_url = f"https://www.reddit.com{permalink}.json?limit={max_comments_per}&sort=top"
+        # Reddit permalinks are usually ASCII but the title slug can be
+        # transliterated non-ASCII (Korean / Thai / etc). urllib refuses
+        # non-ASCII in raw URLs, so percent-encode the path defensively.
+        safe_path = quote(permalink, safe="/")
+        thread_url = (
+            f"https://www.reddit.com{safe_path}.json?"
+            f"limit={max_comments_per}&sort=top"
+        )
         thread = reddit_get(thread_url)
         if not thread or not isinstance(thread, list) or len(thread) < 2:
             continue
@@ -162,10 +176,11 @@ def harvest_reddit(item: dict, max_threads: int = 4, max_comments_per: int = 8) 
 # ---------------------------------------------------------------------------
 
 
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.5-flash:generateContent"
-)
+def gemini_url(model: str) -> str:
+    return (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent"
+    )
 
 
 def gemini_summarize(item: dict, comments: list[str]) -> dict | None:
@@ -230,11 +245,13 @@ Sadece şu JSON formatında cevap ver, başka hiçbir şey yazma:
     if elapsed < GEMINI_MIN_INTERVAL_S:
         time.sleep(GEMINI_MIN_INTERVAL_S - elapsed)
 
+    payload = None
     delay = 5.0
+    daily_exhausted = False
     for attempt in range(4):
         try:
             req = Request(
-                f"{GEMINI_URL}?key={GEMINI_KEY}",
+                f"{gemini_url(_active_model[0])}?key={GEMINI_KEY}",
                 data=json.dumps(body).encode("utf-8"),
                 headers={"Content-Type": "application/json"},
                 method="POST",
@@ -244,19 +261,47 @@ Sadece şu JSON formatında cevap ver, başka hiçbir şey yazma:
                 payload = json.loads(r.read().decode("utf-8"))
                 break
         except HTTPError as e:
-            if e.code in (429, 500, 502, 503):
-                err_body = e.read().decode("utf-8", errors="ignore")[:200]
-                print(f"    ! Gemini {e.code}, retry in {delay}s — {err_body}", flush=True)
+            err_body = e.read().decode("utf-8", errors="ignore")
+            short = err_body[:160].replace("\n", " ")
+            if e.code == 429:
+                # PerDay quota mention → switch to fallback model and try once more
+                if (
+                    "PerDay" in err_body
+                    and _active_model[0] != GEMINI_MODEL_FALLBACK
+                ):
+                    print(
+                        f"    ! daily quota hit on {_active_model[0]}, switching to {GEMINI_MODEL_FALLBACK}",
+                        flush=True,
+                    )
+                    _active_model[0] = GEMINI_MODEL_FALLBACK
+                    delay = 2.0
+                    continue
+                if (
+                    "PerDay" in err_body
+                    and _active_model[0] == GEMINI_MODEL_FALLBACK
+                ):
+                    daily_exhausted = True
+                    print("    ! both models exhausted for today", flush=True)
+                    break
+                print(f"    ! Gemini 429, retry in {delay}s — {short}", flush=True)
                 time.sleep(delay)
                 delay *= 2
                 continue
-            print(f"    ! Gemini error {e.code}: {e.read().decode('utf-8', errors='ignore')[:200]}", flush=True)
+            if e.code in (500, 502, 503):
+                print(f"    ! Gemini {e.code}, retry in {delay}s", flush=True)
+                time.sleep(delay)
+                delay *= 2
+                continue
+            print(f"    ! Gemini {e.code}: {short}", flush=True)
             return None
         except (URLError, json.JSONDecodeError) as exc:
             print(f"    ! Gemini transport: {exc}", flush=True)
             time.sleep(delay)
             delay *= 2
-    else:
+
+    if daily_exhausted:
+        sys.exit("Daily quota exhausted on both models — re-run tomorrow")
+    if payload is None:
         return None
 
     try:
