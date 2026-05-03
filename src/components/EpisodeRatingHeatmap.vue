@@ -89,12 +89,12 @@ function colorFor(rating) {
         <span
           v-for="ep in row.episodes"
           :key="`${row.season}-${ep.e}`"
-          :title="`S${row.season}E${ep.e} · ${ep.r.toFixed(1)} (${Intl.NumberFormat('tr-TR').format(ep.v)} oy)`"
+          :title="`S${row.season}E${ep.e} · ${ep.r.toFixed(1)} (${Intl.NumberFormat('en-US').format(ep.v)} votes)`"
           class="rounded-[2px] flex items-center justify-center text-slate-900 font-bold cursor-default"
-          :class="compact ? 'w-3 h-3 text-[6px]' : 'w-5 h-5 text-[9px]'"
+          :class="compact ? 'w-3 h-3 text-[6px]' : 'w-7 h-7 text-[10px]'"
           :style="{ backgroundColor: colorFor(ep.r) }"
         >
-          <template v-if="!compact && ep.r >= 8">{{ Math.round(ep.r * 10) / 10 }}</template>
+          <template v-if="!compact">{{ Math.round(ep.r * 10) / 10 }}</template>
         </span>
       </div>
     </div>

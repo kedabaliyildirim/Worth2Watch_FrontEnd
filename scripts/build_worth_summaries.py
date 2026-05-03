@@ -38,7 +38,7 @@ import sys
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote_plus, urlencode
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,30 +49,45 @@ REVIEWS_CACHE = CACHE_DIR / "reviews"
 REVIEWS_CACHE.mkdir(exist_ok=True)
 IMDB_CACHE = CACHE_DIR / "imdb"
 IMDB_CACHE.mkdir(exist_ok=True)
+LETTERBOXD_CACHE = CACHE_DIR / "letterboxd"
+LETTERBOXD_CACHE.mkdir(exist_ok=True)
+JIKAN_CACHE = CACHE_DIR / "jikan"
+JIKAN_CACHE.mkdir(exist_ok=True)
 LLM_CACHE = CACHE_DIR / "llm"
 LLM_CACHE.mkdir(exist_ok=True)
 
 TMDB_KEY = os.environ.get("TMDB_API_KEY", "").strip()
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+
+# Gemini supports multi-key rotation. Each Google AI project gets its own
+# free-tier daily quota, so 6 project keys ≈ 6× the daily ceiling.
+# Either GEMINI_API_KEYS=k1,k2,... or single GEMINI_API_KEY works.
+_gemini_env = os.environ.get("GEMINI_API_KEYS", "").strip()
+if _gemini_env:
+    GEMINI_KEYS: list[str] = [k.strip() for k in _gemini_env.split(",") if k.strip()]
+elif os.environ.get("GEMINI_API_KEY", "").strip():
+    GEMINI_KEYS = [os.environ["GEMINI_API_KEY"].strip()]
+else:
+    GEMINI_KEYS = []
 
 if not TMDB_KEY:
     sys.exit("TMDB_API_KEY env var is required")
-if not GROQ_KEY and not GEMINI_KEY:
-    sys.exit("Need at least one of GROQ_API_KEY or GEMINI_API_KEY")
+if not GROQ_KEY and not GEMINI_KEYS:
+    sys.exit("Need at least one of GROQ_API_KEY or GEMINI_API_KEY[S]")
 
-# Backend rotation: tuples of (provider, model, min_interval_s).
-# Order matters — quality first. When one model returns a daily-quota
-# error we mark it exhausted and skip it for the rest of the run.
-BACKENDS: list[tuple[str, str, float]] = []
+# Backend rotation: tuples of (provider, model, min_interval_s, key_index).
+# Gemini is preferred (multi-key gives the most aggregate quota); Groq
+# is the fallback. When one slot's daily quota hits we mark it exhausted
+# and the loop moves on to the next.
+BACKENDS: list[tuple[str, str, float, int]] = []
+for i in range(len(GEMINI_KEYS)):
+    BACKENDS.append(("gemini", "gemini-2.5-flash", 5.0, i))
+    BACKENDS.append(("gemini", "gemini-2.5-flash-lite", 4.0, i))
 if GROQ_KEY:
-    BACKENDS.append(("groq", "llama-3.3-70b-versatile", 2.5))
-    BACKENDS.append(("groq", "llama-3.1-8b-instant", 1.5))
-if GEMINI_KEY:
-    BACKENDS.append(("gemini", "gemini-2.5-flash", 7.0))
-    BACKENDS.append(("gemini", "gemini-2.5-flash-lite", 5.0))
+    BACKENDS.append(("groq", "llama-3.3-70b-versatile", 2.5, 0))
+    BACKENDS.append(("groq", "llama-3.1-8b-instant", 1.5, 0))
 
-_exhausted: set[str] = set()  # backend keys ("provider:model")
+_exhausted: set[str] = set()  # backend keys ("provider:model:keyidx")
 _last_call_t: dict[str, float] = {}
 
 
@@ -81,9 +96,12 @@ _last_call_t: dict[str, float] = {}
 # ---------------------------------------------------------------------------
 
 
-def http_post(url: str, headers: dict, body: dict, timeout: int = 60) -> tuple[int, str]:
+def http_post(url: str, headers: dict, body: dict, timeout: int = 30) -> tuple[int, str]:
     # Override the default urllib UA — Cloudflare in front of Groq returns
     # 1010 (banned browser signature) for the bare "Python-urllib/3.x" UA.
+    # Catch URLError/socket.timeout broadly: when a Gemini key is freshly
+    # exhausted the connection sometimes hangs instead of returning 429,
+    # so we synthesise a fake 503 to make the caller back off and rotate.
     full_headers = {"User-Agent": "Worth2Watch-build/1.0 (curl-equivalent)"}
     full_headers.update(headers)
     req = Request(
@@ -97,6 +115,8 @@ def http_post(url: str, headers: dict, body: dict, timeout: int = 60) -> tuple[i
             return r.status, r.read().decode("utf-8")
     except HTTPError as e:
         return e.code, e.read().decode("utf-8", errors="ignore")
+    except (URLError, OSError, ConnectionError) as e:
+        return 503, f"transport: {e}"
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +147,173 @@ def tmdb_get(path: str, params: dict | None = None, retries: int = 3) -> dict | 
     return None
 
 
-def harvest_imdb_reviews(item: dict, max_reviews: int = 15) -> list[str]:
+def harvest_letterboxd_reviews(item: dict, max_reviews: int = 15) -> list[str]:
+    """Films only — pull popular Letterboxd reviews via TMDB-id redirect.
+
+    Letterboxd's `tmdb/{id}` URL 302-redirects to `/film/{slug}/`, so we
+    don't need to derive the slug ourselves. Cloudflare blocks plain
+    requests but cloudscraper's browser-like fingerprint gets through.
+    """
+    if item.get("mediaType") != "movie":
+        return []
+    tmdb_id = item.get("tmdbId")
+    if not tmdb_id:
+        return []
+
+    cache_path = LETTERBOXD_CACHE / f"{tmdb_id}.json"
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text())
+        except Exception:
+            pass
+
+    try:
+        import cloudscraper  # local import — only needed for movies
+    except ImportError:
+        return []
+
+    scraper = cloudscraper.create_scraper()
+    out: list[str] = []
+    try:
+        # Step 1: GET /tmdb/{id}/ to find the canonical slug. The /tmdb/
+        # path only redirects the BASE film URL — appending /reviews/
+        # gives a 404. So we resolve the slug first, then fetch reviews.
+        import re
+        head = scraper.get(
+            f"https://letterboxd.com/tmdb/{tmdb_id}/",
+            timeout=15,
+            allow_redirects=False,
+        )
+        if head.status_code not in (301, 302, 303, 307, 308):
+            cache_path.write_text("[]")
+            return []
+        loc = head.headers.get("Location") or ""
+        slug_match = re.search(r"/film/([^/]+)/", loc)
+        if not slug_match:
+            cache_path.write_text("[]")
+            return []
+        slug = slug_match.group(1)
+
+        # Step 2: pull popular reviews on the actual film page
+        time.sleep(0.4)
+        url = f"https://letterboxd.com/film/{slug}/reviews/by/activity/"
+        r = scraper.get(url, timeout=20)
+        if r.status_code != 200:
+            cache_path.write_text("[]")
+            return []
+        # Capture each review block (paragraph by paragraph)
+        blocks = re.findall(
+            r'<div class="body-text[^"]*"[^>]*>(.+?)</div>',
+            r.text,
+            re.DOTALL,
+        )
+        # Also grab star rating per review if present (in attached attribute)
+        ratings = re.findall(
+            r'data-original-title="([★½]+)"',
+            r.text,
+        )
+        for i, b in enumerate(blocks):
+            paragraphs = re.findall(r"<p>(.+?)</p>", b, re.DOTALL)
+            text = "\n\n".join(paragraphs)
+            text = re.sub(r"<[^>]+>", "", text)
+            text = re.sub(r"&nbsp;", " ", text)
+            text = re.sub(r"&amp;", "&", text)
+            text = re.sub(r"&#x27;", "'", text)
+            text = text.strip()
+            if len(text) < 60:
+                continue
+            prefix = ""
+            if i < len(ratings):
+                stars = ratings[i].count("★") + (0.5 if "½" in ratings[i] else 0)
+                prefix = f"[Letterboxd: {stars}/5 ★] "
+            out.append(f"{prefix}{text}"[:1500])
+            if len(out) >= max_reviews:
+                break
+    except Exception:
+        pass
+
+    cache_path.write_text(json.dumps(out, ensure_ascii=False))
+    return out
+
+
+def harvest_jikan_reviews(item: dict, max_reviews: int = 15) -> list[str]:
+    """Anime only — search MyAnimeList via Jikan, then pull reviews.
+
+    We treat any item whose genres include 'Animasyon' or 'Animation'
+    AND whose original title contains non-ASCII / Japanese as anime.
+    Conservative: a Pixar film won't return useful results, but the
+    search will silently fail and we'll just not get extra reviews.
+    """
+    genres = item.get("genres") or []
+    is_animation = any(g in ("Animasyon", "Animation") for g in genres)
+    if not is_animation:
+        return []
+
+    cache_path = JIKAN_CACHE / f"{item['mediaType']}_{item['tmdbId']}.json"
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text())
+        except Exception:
+            pass
+
+    title_query = (item.get("originalTitle") or item.get("title") or "").strip()
+    if not title_query:
+        cache_path.write_text("[]")
+        return []
+
+    # Jikan: free, no auth, ~3 RPS rate limit. Returns 504 when MAL is
+    # itself slow — we retry a couple of times. Catch broadly because
+    # socket.timeout, ssl errors, etc. all show up here under load.
+    def _jikan_get(url: str) -> dict | None:
+        for attempt in range(2):
+            time.sleep(1.0 + attempt)
+            try:
+                req = Request(url, headers={"Accept": "application/json"})
+                with urlopen(req, timeout=10) as r:
+                    body = r.read().decode("utf-8")
+                payload = json.loads(body)
+                if payload.get("status") in (502, 503, 504):
+                    continue
+                return payload
+            except Exception:
+                continue
+        return None
+
+    out: list[str] = []
+    try:
+        # Step 1: search for the MAL id
+        search = _jikan_get(
+            f"https://api.jikan.moe/v4/anime?q={quote_plus(title_query)}&limit=3"
+        )
+        if not search or not (search.get("data") or []):
+            cache_path.write_text("[]")
+            return []
+        mal_id = (search["data"][0] or {}).get("mal_id")
+        if not mal_id:
+            cache_path.write_text("[]")
+            return []
+        # Step 2: pull reviews
+        data = _jikan_get(
+            f"https://api.jikan.moe/v4/anime/{mal_id}/reviews?limit={max_reviews}"
+        )
+        if data:
+            for r in data.get("data") or []:
+                body = (r.get("review") or "").strip()
+                score = r.get("score")
+                if len(body) < 80:
+                    continue
+                prefix = f"[MAL: {score}/10] " if score is not None else ""
+                out.append(f"{prefix}{body}"[:1500])
+    except Exception:
+        # Belt-and-braces — swallow any other exception so the main loop
+        # keeps moving even if Jikan goes weird.
+        pass
+
+    cache_path.write_text(json.dumps(out, ensure_ascii=False))
+    return out
+
+
+def harvest_imdb_reviews(item: dict, max_reviews: int = 50) -> list[str]:
     """Pull user reviews via IMDb's public GraphQL endpoint.
 
     Why GraphQL when we couldn't scrape the HTML page: imdb.com/.../reviews
@@ -265,34 +451,40 @@ def harvest_tmdb_reviews(item: dict, max_reviews: int = 12) -> list[str]:
 def build_prompt(item: dict, comments: list[str]) -> str:
     title = item["title"]
     year = item.get("year") or "?"
-    kind = "dizisini" if item["mediaType"] == "tv" else "filmini"
+    kind = "series" if item["mediaType"] == "tv" else "film"
 
-    # Trim hard for token budget: top 6 reviews × 800 chars max.
-    trimmed = [c[:800] for c in comments[:6]]
+    # Trim hard for token budget: top 6 reviews × 400 chars max.
+    # Each item costs ~1.5K input tokens this way — fits comfortably
+    # inside Gemini free-tier per-minute token windows so we can fan
+    # 6 keys × 250 daily req = 1500 calls/day cleanly.
+    trimmed = [c[:400] for c in comments[:6]]
     joined = "\n\n---\n\n".join(trimmed)
-    if len(joined) > 7000:
-        joined = joined[:7000]
+    if len(joined) > 3000:
+        joined = joined[:3000]
 
-    return f"""Sen tarafsız bir film/dizi eleştirmenisin. Aşağıda TMDB'den alınmış gerçek
-kullanıcı yorumları var (bazıları olumlu, bazıları olumsuz, bazıları spoiler içerebilir).
+    return f"""You are an impartial film/TV critic. Below are real user reviews
+collected from Letterboxd, MyAnimeList, IMDb, and TMDB. Some carry tags like
+[Rating: X/10], [N found helpful], or [stars] — these signal how much the
+community valued each review. Take the spread of opinions seriously.
 
-İÇERİK: "{title}" ({year})
+CONTENT: "{title}" ({year})
 
-YORUMLAR:
+REVIEWS:
 {joined}
 
-GÖREV: Bu yorumları oku ve şu soruya tarafsız + dürüst cevap ver:
-"Bu {kind} izlemeye değer mi?"
+TASK: Read these reviews and answer impartially and honestly:
+"Is this {kind} worth watching?"
 
-KURALLAR:
-- Yandaş olma. Yorumlarda eleştiri varsa onu da yansıt.
-- Tek paragraf özet (en fazla 3-4 cümle, Türkçe).
-- 0-100 arası worthScore üret (yorumların geneli ne kadar olumlu).
-- Verdict: "izlemeye_değer", "tartışmalı", "izleme" üçünden biri.
-- Kısa (4-6 kelime) artı/eksi maddeleri.
-- Spoiler verme.
+RULES:
+- Don't be a fan. If reviews contain criticism, reflect it.
+- One paragraph summary (max 3-4 sentences, in English).
+- Produce a 0-100 worthScore (how positive the reviews are overall).
+- Verdict: one of "izlemeye_değer", "tartışmalı", "izleme" (these are
+  enum keys — keep them in this exact form, the UI translates them).
+- Short (4-6 word) highlight / lowlight bullets in English.
+- No spoilers.
 
-Sadece şu JSON formatında cevap ver:
+Respond ONLY in this JSON format, nothing else:
 {{"worthVerdict": "izlemeye_değer|tartışmalı|izleme", "worthScore": <0-100>, "worthSummary": "...", "worthHighlights": ["...", "..."], "worthLowlights": ["...", "..."]}}"""
 
 
@@ -358,8 +550,12 @@ def call_groq(model: str, prompt: str, min_interval: float) -> tuple[dict | None
     return None, None
 
 
-def call_gemini(model: str, prompt: str, min_interval: float) -> tuple[dict | None, str | None]:
-    backend_key = f"gemini:{model}"
+def call_gemini(
+    model: str, prompt: str, min_interval: float, key_idx: int = 0
+) -> tuple[dict | None, str | None]:
+    """Hit Gemini with the key at GEMINI_KEYS[key_idx]. Daily quota
+    here means *that key* is exhausted — caller marks just that slot."""
+    backend_key = f"gemini:{model}:{key_idx}"
     throttle(backend_key, min_interval)
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -368,7 +564,11 @@ def call_gemini(model: str, prompt: str, min_interval: float) -> tuple[dict | No
             "responseMimeType": "application/json",
         },
     }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_KEY}"
+    api_key = GEMINI_KEYS[key_idx]
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent?key={api_key}"
+    )
     delay = 5.0
     for _ in range(3):
         status, text = http_post(url, {"Content-Type": "application/json"}, body)
@@ -390,7 +590,7 @@ def call_gemini(model: str, prompt: str, min_interval: float) -> tuple[dict | No
             time.sleep(delay)
             delay *= 1.7
             continue
-        print(f"    ! gemini/{model} {status}: {text[:160]}", flush=True)
+        print(f"    ! gemini/{model}#{key_idx} {status}: {text[:160]}", flush=True)
         return None, None
     return None, None
 
@@ -443,17 +643,18 @@ def metrics_verdict(item: dict) -> dict:
         verdict = "tartışmalı"
         score = 50
 
-    votes_str = f"{int(votes):,}".replace(",", ".") if votes else "az sayıda"
+    votes_str = f"{int(votes):,}" if votes else "a small number of"
+    confidence_en = {"yüksek": "high", "orta": "medium", "düşük": "low"}[confidence]
     summary = (
-        f"{source} üzerinde {votes_str} kullanıcı bu içeriği "
-        f"{rating:.1f}/10 olarak puanladı (güven: {confidence}). "
+        f"{votes_str} {source} users rated this {rating:.1f}/10 "
+        f"({confidence_en} confidence). "
     )
     if verdict == "izlemeye_değer":
-        summary += "Geniş izleyici kitlesi tarafından beğenilmiş, izlemeye değer."
+        summary += "Broadly loved by audiences — worth a watch."
     elif verdict == "tartışmalı":
-        summary += "İzleyiciler arasında karışık tepkiler var, kişisel tercihinize bağlı."
+        summary += "Audience reception is mixed — comes down to taste."
     else:
-        summary += "Genel izleyici kitlesi tarafından zayıf bulunmuş."
+        summary += "Generally rated poorly by viewers."
 
     return {
         "worthVerdict": verdict,
@@ -481,24 +682,37 @@ def llm_summarize(item: dict, comments: list[str]) -> dict | None:
         if cached and cached.get("worthVerdict") != "yetersiz_veri":
             return cached
 
-    # No review text — use stats-only verdict instead of bailing
-    if len(comments) < 3:
+    # No review text at all — use stats-only verdict instead of bailing.
+    # Even a single review is worth sending to the LLM though, since
+    # IMDb GraphQL gives us helpfulness-sorted picks (one well-upvoted
+    # essay beats zero data).
+    if len(comments) < 1:
         out = metrics_verdict(item)
         cache_path.write_text(json.dumps(out, ensure_ascii=False))
         return out
 
     prompt = build_prompt(item, comments)
 
-    for provider, model, interval in BACKENDS:
-        backend_key = f"{provider}:{model}"
+    for provider, model, interval, key_idx in BACKENDS:
+        backend_key = f"{provider}:{model}:{key_idx}"
         if backend_key in _exhausted:
             continue
-        if provider == "groq":
-            result, reason = call_groq(model, prompt, interval)
-        else:
-            result, reason = call_gemini(model, prompt, interval)
+        try:
+            if provider == "groq":
+                result, reason = call_groq(model, prompt, interval)
+            else:
+                result, reason = call_gemini(model, prompt, interval, key_idx)
+        except Exception as exc:
+            # Don't let an uncaught transport error abort the whole run —
+            # mark this backend exhausted and try the next one.
+            print(f"    ! {backend_key} crashed: {exc}", flush=True)
+            _exhausted.add(backend_key)
+            continue
         if reason == "daily_quota":
-            print(f"    ! {backend_key} daily quota exhausted, skipping for rest of run", flush=True)
+            print(
+                f"    ! {backend_key} daily quota exhausted, skipping for rest of run",
+                flush=True,
+            )
             _exhausted.add(backend_key)
             continue
         if result:
@@ -509,7 +723,7 @@ def llm_summarize(item: dict, comments: list[str]) -> dict | None:
                 "worthHighlights": result.get("worthHighlights") or [],
                 "worthLowlights": result.get("worthLowlights") or [],
                 "worthSourceCount": len(comments),
-                "worthSource": backend_key,
+                "worthSource": f"{provider}:{model}",
             }
             cache_path.write_text(json.dumps(out, ensure_ascii=False))
             return out
@@ -539,7 +753,7 @@ def main() -> None:
 
     catalog = json.loads(PUBLIC.read_text())
     print(f"Loaded {len(catalog):,} items from {PUBLIC}")
-    print(f"Backends: {', '.join(f'{p}:{m}' for p, m, _ in BACKENDS)}\n")
+    print(f"Backends: {len(BACKENDS)} slots ({sum(1 for b in BACKENDS if b[0]=='gemini')} Gemini × {len(GEMINI_KEYS)} keys, {sum(1 for b in BACKENDS if b[0]=='groq')} Groq)\n")
 
     if args.redo_suspicious:
         # Drop the suspicious verdicts so the main loop re-runs them. Also
@@ -582,10 +796,17 @@ def main() -> None:
             skipped_cached += 1
             continue
 
-        # Combine TMDB + IMDb sources — IMDb's helpfulness-sorted reviews
-        # are the strongest signal of community consensus
-        comments = harvest_imdb_reviews(item) + harvest_tmdb_reviews(item)
-        result = llm_summarize(item, comments)
+        # Combine all sources — order matters because we trim to top 12
+        # in build_prompt(). Letterboxd first for movies (cinephile gold
+        # standard), Jikan first for anime, then IMDb (helpful-sorted),
+        # then TMDB. The LLM sees the strongest community signal first.
+        sources = (
+            harvest_letterboxd_reviews(item)
+            + harvest_jikan_reviews(item)
+            + harvest_imdb_reviews(item)
+            + harvest_tmdb_reviews(item)
+        )
+        result = llm_summarize(item, sources)
 
         if result:
             item.update(result)
