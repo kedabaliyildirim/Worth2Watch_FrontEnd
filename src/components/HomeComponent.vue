@@ -28,6 +28,32 @@ const selectedProviders = ref([])
 const page = ref(1)
 const pageSize = 36
 const sortMenuOpen = ref(false)
+const platformMenuOpen = ref(false)
+const genreMenuOpen = ref(false)
+
+function toggleSortMenu() {
+  sortMenuOpen.value = !sortMenuOpen.value
+  if (sortMenuOpen.value) {
+    platformMenuOpen.value = false
+    genreMenuOpen.value = false
+  }
+}
+
+function togglePlatformMenu() {
+  platformMenuOpen.value = !platformMenuOpen.value
+  if (platformMenuOpen.value) {
+    sortMenuOpen.value = false
+    genreMenuOpen.value = false
+  }
+}
+
+function toggleGenreMenu() {
+  genreMenuOpen.value = !genreMenuOpen.value
+  if (genreMenuOpen.value) {
+    sortMenuOpen.value = false
+    platformMenuOpen.value = false
+  }
+}
 
 const SORT_OPTIONS = [
   { id: 'worthScore', label: 'Worth Score' },
@@ -171,6 +197,8 @@ function toggleProvider(id) {
 
 function onClickOutside(e) {
   if (!e.target.closest('[data-sort-menu]')) sortMenuOpen.value = false
+  if (!e.target.closest('[data-platform-menu]')) platformMenuOpen.value = false
+  if (!e.target.closest('[data-genre-menu]')) genreMenuOpen.value = false
 }
 onMounted(() => document.addEventListener('click', onClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
@@ -244,7 +272,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           <button
             type="button"
             class="flex items-center gap-2 px-3 py-2 bg-slate-800/40 border border-slate-700/50 hover:border-indigo-500/50 rounded-l-lg text-sm font-semibold text-slate-200 transition-colors"
-            @click="sortMenuOpen = !sortMenuOpen"
+            @click="toggleSortMenu"
           >
             <ArrowUpDown :size="14" class="text-indigo-400" />
             {{ sortLabel }}
@@ -300,8 +328,132 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </div>
     </div>
 
-    <!-- Provider + Genre chip rows -->
-    <div class="mb-6 space-y-3">
+    <!-- Mobile-only: Platform + Genre as compact dropdown buttons -->
+    <div class="md:hidden mb-6 flex items-stretch gap-2">
+      <div
+        v-if="allProviders.length"
+        class="relative flex-1"
+        data-platform-menu
+      >
+        <button
+          type="button"
+          :aria-expanded="platformMenuOpen"
+          class="w-full flex items-center justify-between gap-2 px-3 py-2 border rounded-lg text-sm font-semibold transition-colors"
+          :class="
+            selectedProviders.length
+              ? 'bg-indigo-500/15 border-indigo-500/50 text-white'
+              : 'bg-slate-800/40 border-slate-700/50 hover:border-indigo-500/50 text-slate-200'
+          "
+          @click="togglePlatformMenu"
+        >
+          <span class="flex items-center gap-1.5">
+            Platform
+            <span
+              v-if="selectedProviders.length"
+              class="px-1.5 py-0.5 bg-indigo-500 text-white text-[10px] font-bold rounded-full leading-none"
+            >
+              {{ selectedProviders.length }}
+            </span>
+          </span>
+          <ChevronDown
+            :size="14"
+            :class="
+              platformMenuOpen
+                ? 'rotate-180 transition-transform'
+                : 'transition-transform'
+            "
+          />
+        </button>
+        <div
+          v-if="platformMenuOpen"
+          class="absolute top-full mt-2 left-0 w-72 max-w-[calc(100vw-2rem)] z-30 bg-slate-900 border border-slate-700/60 rounded-xl shadow-2xl p-3 max-h-72 overflow-y-auto animate-fade-in"
+        >
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="p in allProviders"
+              :key="p.id"
+              type="button"
+              :aria-pressed="selectedProviders.includes(p.id)"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap"
+              :class="
+                selectedProviders.includes(p.id)
+                  ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
+                  : 'bg-slate-800/40 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
+              "
+              @click="toggleProvider(p.id)"
+            >
+              <img
+                :src="`https://image.tmdb.org/t/p/original${p.logo}`"
+                :alt="p.name"
+                class="w-4 h-4 rounded object-cover"
+              />
+              {{ p.name }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="allGenres.length"
+        class="relative flex-1"
+        data-genre-menu
+      >
+        <button
+          type="button"
+          :aria-expanded="genreMenuOpen"
+          class="w-full flex items-center justify-between gap-2 px-3 py-2 border rounded-lg text-sm font-semibold transition-colors"
+          :class="
+            selectedGenres.length
+              ? 'bg-indigo-500/15 border-indigo-500/50 text-white'
+              : 'bg-slate-800/40 border-slate-700/50 hover:border-indigo-500/50 text-slate-200'
+          "
+          @click="toggleGenreMenu"
+        >
+          <span class="flex items-center gap-1.5">
+            Genre
+            <span
+              v-if="selectedGenres.length"
+              class="px-1.5 py-0.5 bg-indigo-500 text-white text-[10px] font-bold rounded-full leading-none"
+            >
+              {{ selectedGenres.length }}
+            </span>
+          </span>
+          <ChevronDown
+            :size="14"
+            :class="
+              genreMenuOpen
+                ? 'rotate-180 transition-transform'
+                : 'transition-transform'
+            "
+          />
+        </button>
+        <div
+          v-if="genreMenuOpen"
+          class="absolute top-full mt-2 right-0 w-72 max-w-[calc(100vw-2rem)] z-30 bg-slate-900 border border-slate-700/60 rounded-xl shadow-2xl p-3 max-h-72 overflow-y-auto animate-fade-in"
+        >
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="g in allGenres"
+              :key="g"
+              type="button"
+              :aria-pressed="selectedGenres.includes(g)"
+              class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap"
+              :class="
+                selectedGenres.includes(g)
+                  ? 'bg-indigo-500 text-white border-indigo-400'
+                  : 'bg-slate-800/40 text-slate-300 border-slate-700/60 hover:border-indigo-500/50 hover:text-white'
+              "
+              @click="toggleGenre(g)"
+            >
+              {{ translateGenre(g) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop: inline Provider + Genre chip rows -->
+    <div class="hidden md:block mb-6 space-y-3">
       <div v-if="allProviders.length" class="flex items-center gap-3 flex-wrap">
         <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex-shrink-0">
           Platform
