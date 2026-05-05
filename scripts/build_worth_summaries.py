@@ -21,7 +21,7 @@ değil ama verdict çıkarımı için yeterli kalitede.
 - Gemini 2.5 Flash Lite         (~250 RPD)
 
 Optimizasyonlar:
-- Yorum yoksa LLM'e hiç gitme (yetersiz_veri olarak işaretle)
+- Yorum yoksa LLM'e hiç gitme (insufficient_data olarak işaretle)
 - Top 6 yorum × 800 char ile input'u trim et (token tasarrufu)
 
 Run:
@@ -479,13 +479,13 @@ RULES:
 - Don't be a fan. If reviews contain criticism, reflect it.
 - One paragraph summary (max 3-4 sentences, in English).
 - Produce a 0-100 worthScore (how positive the reviews are overall).
-- Verdict: one of "izlemeye_değer", "tartışmalı", "izleme" (these are
+- Verdict: one of "worth_watching", "mixed", "skip" (these are
   enum keys — keep them in this exact form, the UI translates them).
 - Short (4-6 word) highlight / lowlight bullets in English.
 - No spoilers.
 
 Respond ONLY in this JSON format, nothing else:
-{{"worthVerdict": "izlemeye_değer|tartışmalı|izleme", "worthScore": <0-100>, "worthSummary": "...", "worthHighlights": ["...", "..."], "worthLowlights": ["...", "..."]}}"""
+{{"worthVerdict": "worth_watching|mixed|skip", "worthScore": <0-100>, "worthSummary": "...", "worthHighlights": ["...", "..."], "worthLowlights": ["...", "..."]}}"""
 
 
 # ---------------------------------------------------------------------------
@@ -628,19 +628,19 @@ def metrics_verdict(item: dict) -> dict:
     confidence = "yüksek" if weight > 0.7 else "orta" if weight > 0.4 else "düşük"
 
     if rating >= 8.0 and weight >= 0.5:
-        verdict = "izlemeye_değer"
+        verdict = "worth_watching"
         score = int(round(min(95, 70 + (rating - 8) * 12 + weight * 8)))
     elif rating >= 7.0 and weight >= 0.3:
-        verdict = "izlemeye_değer" if rating >= 7.5 else "tartışmalı"
+        verdict = "worth_watching" if rating >= 7.5 else "mixed"
         score = int(round(min(85, 55 + (rating - 7) * 12 + weight * 8)))
     elif rating >= 6.0:
-        verdict = "tartışmalı"
+        verdict = "mixed"
         score = int(round(40 + (rating - 6) * 10))
     elif rating > 0:
-        verdict = "izleme"
+        verdict = "skip"
         score = int(round(max(15, 30 - (6 - rating) * 6)))
     else:
-        verdict = "tartışmalı"
+        verdict = "mixed"
         score = 50
 
     votes_str = f"{int(votes):,}" if votes else "a small number of"
@@ -649,9 +649,9 @@ def metrics_verdict(item: dict) -> dict:
         f"{votes_str} {source} users rated this {rating:.1f}/10 "
         f"({confidence_en} confidence). "
     )
-    if verdict == "izlemeye_değer":
+    if verdict == "worth_watching":
         summary += "Broadly loved by audiences — worth a watch."
-    elif verdict == "tartışmalı":
+    elif verdict == "mixed":
         summary += "Audience reception is mixed — comes down to taste."
     else:
         summary += "Generally rated poorly by viewers."
@@ -677,9 +677,9 @@ def llm_summarize(item: dict, comments: list[str]) -> dict | None:
             cached = json.loads(cache_path.read_text())
         except Exception:
             pass
-        # If old cache says yetersiz_veri but we now have a metrics
+        # If old cache says insufficient_data but we now have a metrics
         # fallback, recompute (don't return the stale "no data" answer)
-        if cached and cached.get("worthVerdict") != "yetersiz_veri":
+        if cached and cached.get("worthVerdict") != "insufficient_data":
             return cached
 
     # No review text at all — use stats-only verdict instead of bailing.
@@ -717,7 +717,7 @@ def llm_summarize(item: dict, comments: list[str]) -> dict | None:
             continue
         if result:
             out = {
-                "worthVerdict": result.get("worthVerdict") or "tartışmalı",
+                "worthVerdict": result.get("worthVerdict") or "mixed",
                 "worthSummary": (result.get("worthSummary") or "").strip(),
                 "worthScore": result.get("worthScore"),
                 "worthHighlights": result.get("worthHighlights") or [],
@@ -747,7 +747,7 @@ def main() -> None:
     parser.add_argument(
         "--redo-suspicious",
         action="store_true",
-        help="Re-process LLM-derived 'tartışmalı' verdicts where IMDb says strong love (≥8.0/50K). Adds IMDb GraphQL reviews to the source pool.",
+        help="Re-process LLM-derived 'mixed' verdicts where IMDb says strong love (≥8.0/50K). Adds IMDb GraphQL reviews to the source pool.",
     )
     args = parser.parse_args()
 
@@ -761,7 +761,7 @@ def main() -> None:
         # would short-circuit the re-run).
         targets = []
         for m in catalog:
-            if m.get("worthVerdict") != "tartışmalı":
+            if m.get("worthVerdict") != "mixed":
                 continue
             src = m.get("worthSource") or ""
             if not (src.startswith("groq:") or src.startswith("gemini:")):
@@ -810,7 +810,7 @@ def main() -> None:
 
         if result:
             item.update(result)
-            if result["worthVerdict"] == "yetersiz_veri":
+            if result["worthVerdict"] == "insufficient_data":
                 skipped_no_data += 1
             else:
                 succeeded += 1
@@ -836,7 +836,7 @@ def main() -> None:
 
     PUBLIC.write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")))
     print(
-        f"\n✓ done — {succeeded} new, {skipped_no_data} yetersiz_veri, "
+        f"\n✓ done — {succeeded} new, {skipped_no_data} insufficient_data, "
         f"{skipped_cached} already cached, {failed} failed"
     )
     print(f"  catalog now {PUBLIC.stat().st_size / 1024:.0f} KB")
