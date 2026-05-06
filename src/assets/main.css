@@ -1,656 +1,101 @@
-@import './base.css';
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400&family=Playpen+Sans:wght@100&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Diphylleia&display=swap');
-/* EMRAH */
+@import 'tailwindcss';
 
-#html {
-  height: 100%;
-  width: 100%;
-  padding: 0px;
-  margin: 0px;
-  font-weight: normal;
+@theme {
+  --color-bg: #0c111a;
+  --color-bg-elevated: rgba(30, 41, 59, 0.4);
+  --color-bg-elevated-hover: rgb(30, 41, 59);
+  --color-border: rgba(51, 65, 85, 0.5);
+  --color-border-hover: rgba(99, 102, 241, 0.5);
+  --color-accent: #6366f1;
+  --color-accent-soft: rgba(99, 102, 241, 0.2);
+  --font-sans:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+}
+
+html,
+body,
+#app {
+  color: rgb(226, 232, 240);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Cinematic backdrop. Slate-950 base + low-opacity radial wash:
+ * violet top-left (brand dominant), rose/crimson bottom-right
+ * (complement — purple-red sunset feel), and a deep magenta nudge
+ * through the middle that lets the two ends bleed into each other.
+ * Fixed-attached so the gradient stays put as you scroll. */
+body {
+  margin: 0;
+  background-color: #07060f;
+  background-image:
+    radial-gradient(
+      ellipse 80% 65% at 0% 0%,
+      rgba(168, 85, 247, 0.28) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 100% 100%,
+      rgba(244, 63, 94, 0.22) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 55% at 50% 50%,
+      rgba(192, 38, 211, 0.12) 0%,
+      transparent 60%
+    );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
-  flex-direction: column;
-  width: 100%;
-  margin-left: 30px;
-  margin-right: 80px;
-  margin-top: -15px;
+  background: transparent;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(120, 100%, 37%, 1);
-  transition: 0.4s;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-
-  #app {
-    display: flex;
-    padding: 0;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-body {
-  display: flex;
-  align-items: flex-start;
-  height: 100%;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  justify-content: center;
-  background-color: #0c1821;
-}
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  margin-top: 3%;
-  width: 100%;
-  align-items: center;
-}
-
-
-
-.logo {
-  color: #ccc9dc;
-  font-family: 'Gaegu', sans-serif;
-  font-size: 25px;
-}
-
-.logo-green {
-  color: green;
-  font-family: 'Gaegu', sans-serif;
-  font-size: 35px;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-content: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-}
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-.searchBox {
-  position: absolute;
-  top: 4%; /* veya istediğiniz bir değer */
-  right: 10%;
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
-}
-
-.searchInput::placeholder {
-  color: #ccc9dc;
-}
-
-.searchInput {
-  width: 100%;
-  height: 2em;
-  border-radius: 20px;
-  border: 1px solid #ccc9dc;
-  padding-left: 25%;
-  font-size: 0.8em;
-  background-color: transparent;
-  color: #ccc9dc;
-}
-.searchResults {
-  
-  display: flex;
-  position: absolute;
-  flex-direction: column;
-  margin-left: 30%;
-  background-color: transparent;
-  color: white;
-  width: 20%;
-  z-index: 1;
-  border: 1px solid #ccc9dc;
-}
-.searchLinks {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #ccc9dc;
-}
-.searchItem:hover {
-  opacity: 0.3;
-}
-.searchItem {
-  display: flex;
-  padding: 5px;
-  padding-left: 10px;
-  align-items: center;
-  cursor: pointer;
-}
-
-.mainSearchContent {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  margin-top: 0.1%;
-  width: 85%;
-}
-.searchTitle {
-  margin-left: 15%;
-  font-size: 12px;
-  margin-top: 7px;
-}
-
-.searchPoster {
-  max-height: 12%;
-  max-width: 12%;
-  aspect-ratio: 1/1.2;
-}
-
-/* SORT */
-
-.sortOptions {
-  color: #ccc9dc;
-  position: absolute;
-  right: 10%;
-}
-.mainBox {
-  margin-top: 5%;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-evenly;
-  width: 90%;
-  background-color: transparent; /* Light gray background */
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-  margin: 10px 0;
-  margin-top: 2%;
-}
-
-.individualBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px;
-  height: 650px; /* Adjust max height as needed */
-  width: 300px; /* Adjust max width as needed */
-  color: black;
-  background-color: transparent;
-  overflow: hidden;
-}
-
-.poster {
-  height: 75%;
-  width: 75%; /* Adjust the height as per your design preferences */
-}
-
-.movieGenre {
-  font-size: 14px;
-  padding-left: 10px;
-}
-
-.details {
-  padding: 10px;
-  margin-bottom: 15px;
-  text-align: center;
-  font-weight: bold;
-}
-
-.movieReleaseDate {
-  font-weight: bold;
-  font-style: italic;
-  color: #008000;
-  margin-bottom: 15px;
-}
-
-.movieGenre {
-  font-style: italic;
-  margin-left: -10px;
-}
-
-.providers {
-  display: flex;
-  margin-top: 10px;
-  flex-wrap: wrap;
-  object-fit: contain;
-}
-
-.providerLogo {
-  max-width: 20px; /* Adjust max width of provider logo */
-  margin-left: 10px;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.pagination button {
-  margin: 0 5px;
-  cursor: pointer;
-}
-
-.pagination button.active {
-  font-weight: bold;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/*  */
-/*  */
-/*  */
-/*  */
-/* MOVIE PAGE STYLES  */
-.custom-line {
-  border: 1px solid black; /* Set the color and style of the line */
-  -webkit-box-shadow: 1px 1px 5px #fff;
-  box-shadow: 0px 0px 3px #ccc9dc;
-}
-
-.MoviePageMain {
-  display: flex;
-  margin-top: 3%;
-  width: 85%;
-  flex-direction: column;
-}
-
-.Headline {
-  display: flex;
-  justify-content: space-between;
-}
-
-.custom-line-2 {
-  margin: 5px 0;
-  width: 450px;
-  border: 1px solid black; /* Set the color and style of the line */
-  -webkit-box-shadow: 1px 1px 5px #fff;
-  box-shadow: 0px 0px 2px #ccc9dc;
-}
-
-.detailsContainer-2 {
-  margin-top: 1%;
-  float: left;
-}
-
-
-.star {
-  margin-top: 1%;
-  float: left;
-  margin-left: 15%;
-  text-align: center;
-  font-size: 10px;
-}
-
-.img-star {
-  width: 100px;
-  height: 100px;
-  flex-shrink: 0;
-  margin-bottom: 20px;
-}
-
-.description-4 {
-  width: 300px;
-  margin: 20px 0;
-  padding: 1px;
-  background-color: #1b2a41;
-  border: #0766ad solid 1px;
-  backdrop-filter: blur(5px);
-  border-radius: 30px;
-  text-align: center;
-  font-style: italic;
-  font-size: 14px;
-}
-
-.MoviePagePoster {
-  width: 30%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  float: left;
-}
-.movieDetailLabel {
-  color: #fffae8;
-}
-
-.movieTitle {
-  font-size: 2rem;
-  color: #ccc9cc;
-  font-family: 'Diphylleia', serif;
-}
-
-.movieDuration {
-  font-size: 0.8rem;
-  color: #ccc9cc;
-  font-family: 'Diphylleia', serif;
-  margin-top: 30px;
-}
-
-.movieScoreList {
-  list-style: none;
-  padding: 0;
-  margin-top: -20px;
-  font-size: 0.6rem;
-  color: #ccf;
-}
-
-.movieScoreList li {
-  margin-bottom: 7px;
-}
-
-.moviePoster {
-  width: 50%;
-  height: auto;
-  border-radius: 8px;
-  margin-top: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.sectionHeader {
-  margin-bottom: 15px;
-}
-
-.trailerHeader,
-.detailsHeader {
-  font-size: 1.2rem;
-  color: #fffae8;
-  margin-bottom: 15px;
-}
-
-.movieTrailer {
-  width: 80%;
-  height: 345px;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.detailsContainer {
-  margin-bottom: 15px;
-}
-
-.detailsContainer-2 {
-  margin-bottom: 15px;
-  float: left;
-}
-
-.movieDetailLabel {
-  color: #555;
-}
-.movieDescription {
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-/* <div class="commentBody">
-<h3>Reddit Comments</h3>
-<ul>
-  <li v-for="comment in movieObj.movieComments.redditComments" :key="comment">
-    {{ comment.comment }}
-  </li>
-</ul>
-</div>  */
-
-.commentSection {
-  display: flex;
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.commentBody {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6%;
-  background-color: #32302c;
-  margin: 4%;
-  border-radius: 10px 10px 0 0;
-  border: #0056b3 solid 1px;
-  width: 100%;
-}
-
-/*  */
-/*  */
-/*  */
-/*  */
-/* Admin styles */
-.adminMainBody {
-  background-color: #1a1a1a; /* Dark background color */
-  display: flex;
-  height: 100vh; /* Full height of the viewport */
-  margin: 20px; /* Add margin for spacing */
-}
-
-.adminSideBar {
-  width: 20%;
-  position: absolute;
-  left: 4%;
-  top: 30%;
-  height: 50%;
-  padding: 20px;
-  background: #333; /* Darker sidebar background color */
-  color: #fff; /* Adjust text color to white */
-}
-
-.adminSideBar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.adminSideBar li {
-  padding: 10px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.adminSideBar li:hover {
-  background-color: #555; /* Slightly lighter hover background color */
-}
-
-.adminContent {
-  flex: 1;
-  padding: 20px;
-  position: absolute;
-  top: 22%;
-  left: 25%;
-  width: 50%;
-  height: 50%;
-  margin-left: 20px; /* Add margin for spacing */
-}
-
-.adminContentHeader {
-  margin-bottom: 20px;
-  color: #fff; /* Adjust text color to white */
-}
-
-.adminContentBody {
-  background-color: #292929; /* Adjust content background color */
-  border-radius: 8px; /* Add some border radius for a softer look */
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); /* Adjust box shadow color */
-}
-
-.adminContentBodyHeader {
-  margin-bottom: 10px;
-}
-
-/* Admin Operations */
-.logoutButton {
-  background-color: #007bff; /* Button background color */
-  color: #fff; /* Text color */
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  margin-left: 70%;
-  justify-self: center;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.logoutButton:hover {
-  background-color: #0056b3; /* Slightly darker hover background color */
-}
-
-.adminRegisterForm,
-.passRegisterForm,
-.dangerZone form {
-  margin-bottom: 20px;
-}
-
-.adminRegisterForm label,
-.passRegisterForm label,
-.dangerZone form label {
-  display: block;
-  margin-bottom: 5px;
-  color: #fff;
-}
-
-.adminRegisterForm input,
-.passRegisterForm input,
-.dangerZone form select {
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-  margin-bottom: 10px;
-}
-.dangerZone {
-  border: red solid 1px;
-  padding: 2%;
-  background-color: #ff00000f;
-}
-.adminRegisterForm button,
-.passRegisterForm button,
-.dangerZone form button {
-  background-color: #28a745; /* Button background color */
-  color: #fff; /* Text color */
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.adminRegisterForm button:hover,
-.passRegisterForm button:hover,
-.dangerZone form button:hover {
-  background-color: #218838; /* Slightly darker hover background color */
-}
-
-/* ContentOperations */
-
-.pullCommentsForm,
-.pullMoviesForm,
-.dangerZone form {
-  margin-bottom: 20px;
-}
-
-.pullCommentsForm h3,
-.pullMoviesForm h3,
-.dangerZone h3 {
-  margin-bottom: 10px;
-  color: #fff;
-}
-
-.pullCommentsForm label,
-.pullMoviesForm label,
-.dangerZone form label {
-  display: block;
-  margin-bottom: 5px;
-  color: #fff;
-}
-
-.pullCommentsForm div,
-.pullMoviesForm div {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.pullCommentsForm label,
-.pullMoviesForm label,
-.dangerZone form label {
-  margin-right: 20px;
-}
-
-.pullCommentsForm button,
-.pullMoviesForm button,
-.dangerZone form button {
-  background-color: #007bff; /* Button background color */
-  color: #fff; /* Text color */
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.pullCommentsForm button:hover,
-.pullMoviesForm button:hover,
-.dangerZone form button:hover {
-  background-color: #0056b3; /* Slightly darker hover background color */
-}
-
-/* TEST Operations*/
-.testingOperations {
-  margin-top: 20px;
-}
-
-.testingOperations h3 {
-  margin-bottom: 10px;
-  color: #fff;
-}
-
-.testOperation {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.testOperation button {
-  background-color: #28a745; /* Button background color */
-  color: #fff; /* Text color */
-  border: none;
-  padding: 8px 16px;
-  margin-right: 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.testOperation button:disabled {
-  background-color: #6c757d; /* Disabled button background color */
-  cursor: not-allowed;
-}
-
-.statusIcon {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-left: 5px;
-}
-
-.statusIcon.ongoing {
-  background-color: #ffc107; /* Ongoing status color */
-}
 
-.statusIcon.passed {
-  background-color: #28a745; /* Passed status color */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
 }
 
-.statusIcon.failed {
-  background-color: #dc3545; /* Failed status color */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
