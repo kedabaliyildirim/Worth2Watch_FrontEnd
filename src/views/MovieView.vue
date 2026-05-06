@@ -61,7 +61,7 @@ const verdict = computed(() => {
   const m = movie.value
   if (!m) return null
   const v = m.worthVerdict
-  if (v === 'izlemeye_değer') {
+  if (v === 'worth_watching') {
     return {
       label: 'Worth Watching',
       icon: ThumbsUp,
@@ -71,7 +71,7 @@ const verdict = computed(() => {
       score: m.worthScore,
     }
   }
-  if (v === 'tartışmalı') {
+  if (v === 'mixed') {
     return {
       label: 'Mixed Reception',
       icon: HelpCircle,
@@ -81,7 +81,7 @@ const verdict = computed(() => {
       score: m.worthScore,
     }
   }
-  if (v === 'izleme') {
+  if (v === 'skip') {
     return {
       label: 'Skip It',
       icon: ThumbsDown,
