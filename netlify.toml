@@ -1,0 +1,53 @@
+# Netlify Configuration — Worth2Watch Frontend
+#
+# Build pipeline mirrors what `npm run build` already does locally:
+# Vite emits a static SPA into `dist/`. Vue Router runs in HTML5
+# history mode, so the catch-all redirect at the bottom is what keeps
+# direct visits to /movie/123 etc. from 404'ing.
+#
+# Production branch + custom domain are configured in the Netlify UI
+# (Site settings → Build & deploy → Production branch). Pick `test`
+# (the GitHub default) or `master` if you'd rather only auto-deploy
+# from the long-lived release branch.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+  [build.environment]
+    NODE_VERSION = "20"
+
+[context.production]
+  command = "npm run build"
+  publish = "dist"
+
+[context.deploy-preview]
+  command = "npm run build"
+  publish = "dist"
+
+# Security headers — minimal CSP since this is a static catalogue
+# pulling images from IMDb/TMDB. Tighten image-src whitelist once the
+# real CDN list is known.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Hashed Vite assets are content-addressed → safe to cache forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# SPA fallback so deep links work under Vue Router's history mode.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# NOTE: vercel.json declares a daily cron at /src/api/cron.js. Netlify's
+# equivalent is Scheduled Functions, which need a netlify/functions/
+# entry — not bundled here to keep this PR focused on the static deploy.
