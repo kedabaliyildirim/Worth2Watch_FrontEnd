@@ -1,0 +1,25 @@
+{
+  "name": "worth2watch-backend-legacy",
+  "version": "1.0.0",
+  "description": "Worth2Watch v1 Express + MongoDB backend — auth, user settings, movie CRUD. Originally written by the v1 team in 2023, brought back to a runnable state for the v2 repo.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "seed": "node scripts/seed-from-catalog.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
