@@ -10,27 +10,35 @@ score worship, just an honest read on how audiences actually felt.
 
 ## Architecture
 
-The current build is a **fully static SPA** — no backend, no database,
-no runtime API. Everything lives in a single `public/movies.json`
-(~3.6 MB) baked at build time and served from a CDN edge.
+The frontend is a **fully static SPA** — `public/movies.json` (~3.6 MB)
+is baked at build time and served from a CDN edge, so the
+"browse → see a verdict → decide" path needs zero runtime API.
 
 ```
-build_catalog.py    →  TMDB + IMDb dumps + Letterboxd/MAL  →  movies.json
-build_worth_summaries.py  →  Groq Llama + Gemini  →  worth verdicts (cached)
-Vue 3 + Vite + Tailwind 4  →  reads movies.json once, renders 1500 cards
+build_catalog.py             →  TMDB + IMDb dumps + Letterboxd/MAL  →  movies.json
+build_worth_summaries.py     →  Groq Llama + Gemini                 →  worth verdicts
+Vue 3 + Vite + Tailwind 4    →  reads movies.json once              →  renders 1500 cards
 ```
 
 The verdict pipeline rotates across 14 LLM backend slots (Groq Llama
 70B + 8B, six Gemini API keys × two models) so it can fan a free-tier
 budget across thousands of items without hitting any single quota wall.
 
-**Why no backend?** Earlier iterations of this project ran a Node/Express
-server with a database for auth, content moderation, and Reddit +
-YouTube comment scraping pipelines (see _Project History_ below). That
-architecture solved real problems for the v1 product, but the v2
-product — "is it worth watching, in one paragraph" — needs none of it.
-A static catalog refreshed weekly by a cron job is faster, cheaper,
-and has zero cold-start risk.
+### Optional Django backend
+
+The repo also ships a **Django + DRF backend** at
+[`backend/`](./backend) for the things a static catalog can't do:
+user accounts (JWT auth), admin-curated content, and any future
+persistence work. It's a one-to-one port of the v1 Express+MongoDB API
+([`begumis/Movie_App`](https://github.com/begumis/Movie_App)) — same
+routes, same payload shapes, same admin/user split — implemented in
+idiomatic Python. `docker compose up --build` brings the whole thing
+(Postgres + Django) online; the frontend doesn't depend on it for the
+"is it worth watching?" surface but can wire in for accounts/admin
+flows if you want them.
+
+The v1 Express+Mongo source is also archived at
+[`backend-legacy/`](./backend-legacy) for posterity.
 
 ## Stack
 
